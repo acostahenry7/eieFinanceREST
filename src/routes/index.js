@@ -562,15 +562,16 @@ module.exports = app => {
 
 
         let query = ""
-        query = `select payment_router_detail_id, position, first_name || ' ' || last_name as name,l.loan_number_id, street as location, prd.payment_router_id, pr.created_date
-        from payment_router_detail  prd
-        join payment_router pr on (prd.payment_router_id = pr.payment_router_id)
-        join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
-        join loan l on (prd.loan_payment_address_id = l.loan_payment_address_id)
-        join loan_application la on (l.loan_application_id = la.loan_application_id)
-        join customer c on (la.customer_id = c.customer_id)
-        where pr.zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')
-        and pr.created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}'))
+        query = `select payment_router_detail_id, prd.status_type, position, c.first_name || ' ' || c.last_name as name
+        from payment_router_detail prd
+        inner join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
+        inner join loan l on (lpa.loan_id = l.loan_id)
+        inner join loan_application la on ( l.loan_application_id = la.loan_application_id )
+        inner join customer c on ( la.customer_id = c.customer_id)
+        where payment_router_id = (select payment_router_id
+        from payment_router
+        where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')
+        and created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')))
         order by position`
 
         try {
