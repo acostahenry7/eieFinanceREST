@@ -42,7 +42,7 @@ db.visit = require('../models/collectorCustomerVisit')(sequelize, Sequelize)
 db.section =  require('../models/Section.model')(sequelize, Sequelize)
 db.paymentRouter = require('../models/PaymentRouter.model')(sequelize, Sequelize)
 db.paymentRouterDetail = require('../models/PaymentRouterDetail.model')(sequelize, Sequelize)
-
+db.outlet = require('../models/Outlet.model')(sequelize, Sequelize)
 
 db.loanApplication.belongsTo(db.customer,{
     foreignKey: 'customer_id'

@@ -8,10 +8,10 @@ const app = config(express())
 const db = require('./models')
 
 
-options = {
-    key: fs.readFileSync('/home/henry/Documents/platzi/react-courses/curso-intro-react-native/eieFinance/src/example.key'),
-    cert: fs.readFileSync('/home/henry/Documents/platzi/react-courses/curso-intro-react-native/eieFinance/src/example.crt')
-}
+//options = {
+//    key: fs.readFileSync('/home/henry/Documents/platzi/react-courses/curso-intro-react-native/eieFinance/src/example.key'),
+//    cert: fs.readFileSync('/home/henry/Documents/platzi/react-courses/curso-intro-react-native/eieFinance/src/example.crt')
+//}
 
 
 app.listen(app.get('port') , () => {
