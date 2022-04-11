@@ -29,11 +29,11 @@ controller.getCustomersByEmployeeId = async (req, res) => {
     console.log("Employee ID", req.params.employeeId);
     let query = "";
     if (req.params.employeeId == 0) {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code
+      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code, c.image_url
                     FROM loan_application la
                     JOIN customer c on (la.customer_id = c.customer_id)`;
     } else {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, street, loan_situation
+      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, street, loan_situation, c.image_url
                     FROM loan_application la
                     JOIN customer c on (c.customer_id = la.customer_id)
                     join loan l on (la.loan_application_id = l.loan_application_id)
@@ -86,7 +86,7 @@ controller.getCustomerById = async (req, res) => {
   const results = {};
 
   const [customer, metadata] = await db.sequelize.query(
-    `SELECT customer_id as key, identification, first_name, last_name, birth_date, email, p.name as province, m.name as municipality, s.name as section, street, street2, phone, mobile, status_type
+    `SELECT customer_id as key, identification, first_name, last_name, birth_date, email, p.name as province, m.name as municipality, s.name as section, street, street2, phone, mobile, status_type, image_url
     from customer c
     join province p on (p.province_id = c.province_id)
     join municipality m on (m.municipality_id = c.municipality_id)

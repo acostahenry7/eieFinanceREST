@@ -7,6 +7,8 @@ const authController = require("../controllers/auth");
 const customerController = require("../controllers/customers");
 const qrController = require("../controllers/qr");
 const paymentController = require("../controllers/payments");
+const imageController = require("../controllers/camera");
+const multer = require("multer");
 
 const db = require("../models/index");
 const Sequelize = db.Sequelize;
@@ -40,7 +42,17 @@ const {
   employeeZone,
 } = require("../models/index");
 
-module.exports = (app) => {
+module.exports = (app, storage) => {
+  const upload = multer({ storage });
+
+  console.log(upload);
+  app.post("/api/upload", upload.single("userImg"), (req, res) => {
+    console.log("body", req.body.customerId);
+    res.status(200).json({
+      message: "success!",
+    });
+  });
+
   //Login
   router.post("/login", authController.login);
 
@@ -51,6 +63,10 @@ module.exports = (app) => {
   );
 
   router.post("/customers/each", customerController.getCustomerById);
+
+  //Camera
+  router.get("/customer/img/:employeeId", imageController.getCustomerImg);
+  router.post("/customer/img/", imageController.setCustomerImg);
 
   //Qr
   router.get(
@@ -107,8 +123,10 @@ module.exports = (app) => {
 
   //Payment Router
   router.get("/paymentroute/:employeeId", async (req, res) => {
+    console.log(req.params.employeeId);
+
     let query = "";
-    query = `select payment_router_detail_id, prd.status_type, position, c.first_name || ' ' || c.last_name as name
+    query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, c.first_name || ' ' || c.last_name as name, c.street as location
         from payment_router_detail prd
         inner join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
         inner join loan l on (lpa.loan_id = l.loan_id)

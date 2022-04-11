@@ -15,16 +15,16 @@ module.exports = {
 
 //Conexión para finance local
 
-// module.exports =  {
-//     host: 'localhost',
-//     user: 'postgres',
-//     password: 'postgres',
-//     db: 'finance',
-//     dialect: 'postgres',
-//     pool: {
-//         max: 10,
-//         min: 0,
-//         acquire: 30000,
-//         idle: 10000
-//     }
-// }
+// module.exports = {
+//   host: "localhost",
+//   user: "postgres",
+//   password: "postgres",
+//   db: "finance",
+//   dialect: "postgres",
+//   pool: {
+//     max: 10,
+//     min: 0,
+//     acquire: 30000,
+//     idle: 10000,
+//   },
+// };

@@ -1,30 +1,42 @@
+const { engine } = require("express-handlebars");
+const path = require("path");
+const routes = require("../routes");
+const express = require("express");
+const bodyParser = require("body-parser");
+const session = require("express-session");
+const multer = require("multer");
+const fs = require("fs");
 
-const { engine } = require('express-handlebars')
-const path = require('path');
-const routes = require('../routes')
-const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
+module.exports = (app) => {
+  //Listenin Port
+  app.set("port", process.env.PORT || 3000);
 
+  //Middlewares
+  app.use(session({ secret: "eiesecret" }));
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
+  //app.use(cookieParser());
+  //app.use(cors(corsOptions))
 
+  //Midlewares
+  app.use(bodyParser.json());
 
+  const storage = multer.diskStorage({
+    destination(req, res, cb) {
+      console.log(req.body);
+      const route = path.join(__dirname, `../assets/profile`);
+      fs.mkdirSync(route, { recursive: true });
+      cb(null, route);
+    },
+    filename(req, file, cb) {
+      const filename = `${req.body.customerId}.jpg`;
+      cb(null, filename);
+    },
+  });
 
+  //Routes
+  routes(app, storage);
 
-module.exports = app =>{
-    //Listenin Port
-    app.set('port', process.env.PORT || 3000)
-
-    //Middlewares
-    app.use(session({secret: "eiesecret"}));
-    app.use(bodyParser.urlencoded({extended: true}));
-    app.use(express.urlencoded({extended: false}));
-    app.use(express.json());
-    //app.use(cookieParser());
-    //app.use(cors(corsOptions))
-
-    //Routes
-    routes(app)
-    
-
-    return app;
-}
+  return app;
+};
