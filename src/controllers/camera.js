@@ -19,7 +19,7 @@ controller.setCustomerImg = (req, res) => {
   console.log("CAMMEMRA", req.body.customerId);
   Customer.update(
     {
-      image_url: req.body.customerImage,
+      image_url: req.body.imageUrl,
     },
     {
       where: {

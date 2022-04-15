@@ -38,5 +38,7 @@ module.exports = (app) => {
   //Routes
   routes(app, storage);
 
+  app.use("/assets", express.static(path.join(__dirname, "../assets")));
+
   return app;
 };
