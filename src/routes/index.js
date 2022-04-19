@@ -236,9 +236,22 @@ module.exports = (app, storage) => {
     }).then((loanId) => {
       console.log("ID", loanId);
       Payment.findAll({
+        attributes: [
+          [
+            db.sequelize.cast(db.sequelize.col("created_date"), "date"),
+            "created_date",
+          ],
+          [
+            db.sequelize.cast(db.sequelize.col("created_date"), "time"),
+            "created_time",
+          ],
+          "payment_type",
+          "payment_id",
+        ],
         where: {
           loan_id: loanId.dataValues.loan_id,
         },
+        order: [["created_date", "asc"]],
         include: {
           model: Receipt,
         },
@@ -255,7 +268,15 @@ module.exports = (app, storage) => {
 
   router.post("/receipt/amortization", (req, res) => {
     Payment.findOne({
-      attributes: ["created_date", "pay"],
+      attributes: [
+        [
+          db.sequelize.literal(
+            `(select created_date::date  as created_date from payment where payment_id = '${req.body.paymentId}')`
+          ),
+          "created_date",
+        ],
+        "pay",
+      ],
       where: {
         payment_id: req.body.paymentId,
       },
@@ -271,9 +292,27 @@ module.exports = (app, storage) => {
           .then((paymentDetail) => {
             var transactions = [];
             var counter = 1;
+            var test;
             paymentDetail.map((pd, index) => {
               console.log(pd);
+              //console.log("HAHAHAAHA", paymentDetail[index - 1]);
               Amortization.findOne({
+                attributes: {
+                  include: [
+                    "amortization_id",
+                    "quota_number",
+                    "amount_of_fee",
+                    "total_paid",
+                    "mora",
+                    [
+                      db.sequelize.cast(
+                        db.sequelize.col("payment_date"),
+                        "date"
+                      ),
+                      "payment_date",
+                    ],
+                  ],
+                },
                 where: {
                   amortization_id: pd.amortization_id,
                 },
@@ -287,11 +326,12 @@ module.exports = (app, storage) => {
                 transactions.push({
                   amortization_id: amortization.dataValues.amortization_id,
                   quota_number: amortization.dataValues.quota_number,
-                  date: payment.dataValues.created_date,
+                  date: amortization.dataValues.payment_date,
                   amount:
                     currentPay == 0
                       ? amortization.dataValues.amount_of_fee
-                      : currentPay,
+                      : //: currentPay + parseFloat(pd.pay) + ".00",
+                        amortization.dataValues.amount_of_fee,
                   mora: amortization.dataValues.mora,
                   totalPaid: pd.pay,
                 });
@@ -302,7 +342,8 @@ module.exports = (app, storage) => {
                   console.log("TRANS", transactions);
                   res.send(transactions);
                 }
-
+                test = amortization.dataValues.amount_of_fee - pd.pay;
+                console.log(test);
                 counter++;
               });
             });

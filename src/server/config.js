@@ -30,7 +30,7 @@ module.exports = (app) => {
       cb(null, route);
     },
     filename(req, file, cb) {
-      const filename = `${req.body.customerId}.jpg`;
+      const filename = `${req.body.fileName}`;
       cb(null, filename);
     },
   });
