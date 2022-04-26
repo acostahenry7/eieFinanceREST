@@ -1,39 +1,39 @@
 module.exports = (sequelize, Sequelize) => {
-  const Amortization = sequelize.define(
-    "amortization",
+  const ReceiptTransaction = sequelize.define(
+    "receipt_transaction",
     {
-      amortization_id: {
+      receipt_transaction_id: {
         primaryKey: true,
         type: Sequelize.STRING,
         defaultValue: Sequelize.UUIDV4,
         allowNull: false,
       },
-      last_modified_by: {
+      receipt_id: {
         type: Sequelize.STRING,
-      },
-      payment_date: {
-        type: Sequelize.DATEONLY,
-      },
-      amount_of_fee: {
-        type: Sequelize.DOUBLE,
-      },
-      mora: {
-        type: Sequelize.DOUBLE,
-      },
-      discount: {
-        type: Sequelize.DOUBLE,
       },
       quota_number: {
         type: Sequelize.INTEGER,
       },
-      paid: {
-        type: Sequelize.BOOLEAN,
+      payment_date: {
+        type: Sequelize.DATE,
       },
-      status_type: {
-        type: Sequelize.STRING,
+      amount: {
+        type: Sequelize.INTEGER,
+      },
+      mora: {
+        type: Sequelize.INTEGER,
+      },
+      discount: {
+        type: Sequelize.INTEGER,
+      },
+      discount_interest: {
+        type: Sequelize.INTEGER,
+      },
+      discount_mora: {
+        type: Sequelize.INTEGER,
       },
       total_paid: {
-        type: Sequelize.DOUBLE,
+        type: Sequelize.INTEGER,
       },
     },
     {
@@ -44,5 +44,5 @@ module.exports = (sequelize, Sequelize) => {
     }
   );
 
-  return Amortization;
+  return ReceiptTransaction;
 };

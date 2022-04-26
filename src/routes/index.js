@@ -17,6 +17,7 @@ const Customer = db.customer;
 const Loan = db.loan;
 const Register = db.register;
 const Receipt = db.receipt;
+const ReceiptTransaction = db.receiptTransaction;
 const User = db.user;
 const Employee = db.employee;
 const EmployeeZone = db.employeeZone;
@@ -251,7 +252,7 @@ module.exports = (app, storage) => {
         where: {
           loan_id: loanId.dataValues.loan_id,
         },
-        order: [["created_date", "asc"]],
+        order: [["created_date", "desc"]],
         include: {
           model: Receipt,
         },
@@ -267,142 +268,42 @@ module.exports = (app, storage) => {
   });
 
   router.post("/receipt/amortization", (req, res) => {
-    Payment.findOne({
+    ReceiptTransaction.findAll({
       attributes: [
+        "quota_number",
         [
-          db.sequelize.literal(
-            `(select created_date::date  as created_date from payment where payment_id = '${req.body.paymentId}')`
-          ),
-          "created_date",
+          db.sequelize.cast(db.sequelize.col("payment_date"), "date"),
+          "payment_date",
         ],
-        "pay",
+        "amount",
+        "mora",
+        "discount_interest",
+        "discount_mora",
+        "discount",
+        "total_paid",
       ],
       where: {
-        payment_id: req.body.paymentId,
+        receipt_id: req.body.receiptId,
       },
     })
-      .then((payment) => {
-        //console.log(payment);
-        PaymentDetail.findAll({
-          //attributes: ['amortization_id','pay'],
-          where: {
-            payment_id: req.body.paymentId,
-          },
-        })
-          .then((paymentDetail) => {
-            var transactions = [];
-            var counter = 1;
-            var test;
-            paymentDetail.map((pd, index) => {
-              console.log(pd);
-              //console.log("HAHAHAAHA", paymentDetail[index - 1]);
-              Amortization.findOne({
-                attributes: {
-                  include: [
-                    "amortization_id",
-                    "quota_number",
-                    "amount_of_fee",
-                    "total_paid",
-                    "mora",
-                    [
-                      db.sequelize.cast(
-                        db.sequelize.col("payment_date"),
-                        "date"
-                      ),
-                      "payment_date",
-                    ],
-                  ],
-                },
-                where: {
-                  amortization_id: pd.amortization_id,
-                },
-              }).then((amortization) => {
-                //
+      .then((amortizations) => {
+        var transactions = [];
 
-                var currentPay =
-                  parseInt(amortization.dataValues.amount_of_fee) -
-                  parseInt(amortization.dataValues.total_paid);
-
-                transactions.push({
-                  amortization_id: amortization.dataValues.amortization_id,
-                  quota_number: amortization.dataValues.quota_number,
-                  date: amortization.dataValues.payment_date,
-                  amount:
-                    currentPay == 0
-                      ? amortization.dataValues.amount_of_fee
-                      : //: currentPay + parseFloat(pd.pay) + ".00",
-                        amortization.dataValues.amount_of_fee,
-                  mora: amortization.dataValues.mora,
-                  totalPaid: pd.pay,
-                });
-                console.log(counter, "vs", paymentDetail.length);
-                if (counter == paymentDetail.length) {
-                  //res.send(transactions)
-                  console.log("HI");
-                  console.log("TRANS", transactions);
-                  res.send(transactions);
-                }
-                test = amortization.dataValues.amount_of_fee - pd.pay;
-                console.log(test);
-                counter++;
-              });
-            });
-            //     console.log(paymentDetail);
-            //     var amortization = []
-            //     var pays = []
-            //     paymentDetail.map( detail => {
-            //         amortization.push(detail.dataValues.amortization_id.toString())
-            //     })
-
-            //     Amortization.findAll(
-            //         {
-            //             attributes: [
-            //                 'amortization_id',
-            //                 'quota_number',
-            //                 'amount_of_fee',
-            //                 [Sequelize.literal('amount_of_fee - total_paid'), 'amount'],
-            //                 //[Sequelize.literal('total_paid - (((amount_of_fee - total_paid) + mora) - discount)'), 'quota_paid'],
-            //                 'total_paid',
-            //                 'mora'
-            //             ],
-            //             where: {
-            //                 amortization_id: amortization
-            //             }
-            //         }
-            //     ).then( amortization => {
-
-            //         let quotas = []
-            //         var currentPay = parseInt(payment.dataValues.pay)
-
-            //         amortization.map( (quota , index) => {
-
-            //             if( amortization.length > 1  && index != amortization.length -1) {
-            //                 var x = quota.dataValues.amount == 0 ? quota.dataValues.amount_of_fee : quota.dataValues.amount
-            //                 console.log(currentPay);
-            //                 currentPay = currentPay - (x + parseInt(quota.dataValues.mora))
-            //             }else {
-            //                 currentPay = currentPay
-            //             }
-
-            //             quotas.push({
-            //                 amortization_id: quota.dataValues.amortization_id,
-            //                 quota_number: quota.dataValues.quota_number,
-            //                 date: payment.dataValues.created_date,
-            //                 amount: quota.dataValues.amount == 0 ? quota.dataValues.amount_of_fee : quota.dataValues.amount,
-            //                 mora: quota.dataValues.mora,
-            //                 totalPaid: currentPay
-            //             })
-            //         })
-
-            //         res.send(quotas)
-            //     }).catch( err =>{
-            //         console.log(err);
-            //     })
-            //
-          })
-          .catch((err) => {
-            console.log(err);
+        amortizations.map((amortization) => {
+          transactions.push({
+            quota_number: amortization.dataValues.quota_number,
+            date: amortization.dataValues.payment_date,
+            fixedAmount: amortization.dataValues.amount + ".00",
+            mora: amortization.dataValues.mora + ".00",
+            totalPaid: amortization.dataValues.total_paid,
+            discountInterest: amortization.dataValues.discount_interest,
+            discountMora: amortization.dataValues.discount_mora,
+            discount: amortization.dataValues.discount,
           });
+        });
+
+        console.log(transactions);
+        res.send(transactions);
       })
       .catch((err) => {
         console.log(err);

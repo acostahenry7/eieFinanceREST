@@ -9,6 +9,7 @@ const PaymentDetail = db.paymentDetail;
 const LoanPaymentAddress = db.loanPaymentAddress;
 const Section = db.section;
 const Receipt = db.receipt;
+const ReceiptTransaction = db.receiptTransaction;
 
 controller.getPaymentsBySearchkey = async (req, res) => {
   const results = {};
@@ -59,7 +60,8 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     const [quotas, metaQuota] = await db.sequelize.query(
-      `select amortization_id, l.loan_number_id, ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, discount_mora as mora
+      `select amortization_id, l.loan_number_id, ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, 
+      mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount
                     from amortization a
                     join loan l on (a.loan_id = l.loan_id)
                     where l.loan_number_id in (${loanNumbers.join()})
@@ -145,6 +147,16 @@ controller.createPayment = async (req, res) => {
                   pay: quota.totalPaid,
                 })
                   .then((paymentDetail) => {
+                    results.amortization = [];
+
+                    var date = amortization[1][0].dataValues.payment_date
+                      .toISOString()
+                      .split("T")[0];
+
+                    results.amortization.push(
+                      date.split("-").reverse().join("/")
+                    );
+
                     if (parseInt(req.body.amortization.length) == counter) {
                       //Crea recibo del pago
                       Receipt.create({
@@ -155,28 +167,54 @@ controller.createPayment = async (req, res) => {
                       })
                         .then((receipt) => {
                           results.receipt = receipt;
+                          var bulkTransactions = [];
 
-                          LoanPaymentAddress.findOne({
-                            attributes: ["section_id"],
-                            where: {
-                              loan_id: req.body.payment.loanId,
-                            },
-                          }).then((sectionId) => {
-                            console.log(sectionId.dataValues.section_id);
-
-                            Section.findOne({
-                              attributes: ["name"],
-                              where: {
-                                section_id: sectionId.dataValues.section_id,
-                              },
-                            }).then((section) => {
-                              results.loanDetails = {
-                                section: section.dataValues.name,
-                              };
-
-                              res.send(results);
+                          req.body.amortization.map((item) => {
+                            bulkTransactions.push({
+                              receipt_id: receipt.dataValues.receipt_id,
+                              quota_number: item.quota_number,
+                              payment_date: (() => {
+                                let date = new Date(
+                                  item.date.split("/").reverse().join("-")
+                                );
+                                // console.log(
+                                //   item.date.split("/").reverse().join("-")
+                                // );
+                                return date;
+                              })(),
+                              amount: item.amount,
+                              mora: item.mora,
+                              discount: 0,
+                              total_paid: item.totalPaid,
                             });
                           });
+
+                          ReceiptTransaction.bulkCreate(bulkTransactions).then(
+                            (receiptTransaction) => {
+                              console.log("BULK", bulkTransactions);
+                              LoanPaymentAddress.findOne({
+                                attributes: ["section_id"],
+                                where: {
+                                  loan_id: req.body.payment.loanId,
+                                },
+                              }).then((sectionId) => {
+                                console.log(sectionId.dataValues.section_id);
+
+                                Section.findOne({
+                                  attributes: ["name"],
+                                  where: {
+                                    section_id: sectionId.dataValues.section_id,
+                                  },
+                                }).then((section) => {
+                                  results.loanDetails = {
+                                    section: section.dataValues.name,
+                                  };
+
+                                  res.send(results);
+                                });
+                              });
+                            }
+                          );
                         })
                         .catch((err) => {
                           console.log("Error creating receipt " + err);
