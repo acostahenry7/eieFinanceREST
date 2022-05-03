@@ -184,8 +184,10 @@ controller.createPayment = async (req, res) => {
                               })(),
                               amount: item.amount,
                               mora: item.mora,
-                              discount: 0,
+                              discount: parseFloat(item.discountInterest)+ parseFloat(item.discountMora),
                               total_paid: item.totalPaid,
+                              discount_interest: item.discountInterest,
+                              discount_mora: item.discountMora
                             });
                           });
 
@@ -214,7 +216,7 @@ controller.createPayment = async (req, res) => {
                                 });
                               });
                             }
-                          );
+                          ).catch(err => console.log(err));
                         })
                         .catch((err) => {
                           console.log("Error creating receipt " + err);

@@ -12,28 +12,28 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
       },
       quota_number: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       payment_date: {
         type: Sequelize.DATE,
       },
       amount: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       mora: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       discount: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       discount_interest: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       discount_mora: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
       total_paid: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE,
       },
     },
     {

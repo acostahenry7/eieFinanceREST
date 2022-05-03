@@ -5,6 +5,7 @@ const { uuid } = require("uuidv4");
 
 const authController = require("../controllers/auth");
 const customerController = require("../controllers/customers");
+const collectorController = require("../controllers/collectors");
 const qrController = require("../controllers/qr");
 const paymentController = require("../controllers/payments");
 const imageController = require("../controllers/camera");
@@ -62,6 +63,10 @@ module.exports = (app, storage) => {
     "/customers/main/:employeeId",
     customerController.getCustomersByEmployeeId
   );
+
+  //Collectors
+  router.get("/collectors", collectorController.getCollectors);
+  router.post("/collectors/update", collectorController.updateCollectorParams);
 
   router.post("/customers/each", customerController.getCustomerById);
 
@@ -126,8 +131,15 @@ module.exports = (app, storage) => {
   router.get("/paymentroute/:employeeId", async (req, res) => {
     console.log(req.params.employeeId);
 
-    let query = "";
-    query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, c.first_name || ' ' || c.last_name as name, c.street as location
+    User.findOne({
+      attributes: ["router_restriction"],
+      where: {
+        employee_id: req.params.employeeId,
+      },
+    }).then(async (user) => {
+      console.log(user);
+      let query = "";
+      query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, c.first_name || ' ' || c.last_name as name, c.street as location
         from payment_router_detail prd
         inner join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
         inner join loan l on (lpa.loan_id = l.loan_id)
@@ -137,14 +149,16 @@ module.exports = (app, storage) => {
         from payment_router
         where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')
         and created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')))
-        order by position`;
+        order by position
+        limit ${user.dataValues.router_restriction}`;
 
-    try {
-      const [data, meta] = await db.sequelize.query(query);
-      res.send(data);
-    } catch (error) {
-      console.log(error);
-    }
+      try {
+        const [data, meta] = await db.sequelize.query(query);
+        res.send(data);
+      } catch (error) {
+        console.log(error);
+      }
+    });
 
     // var counter = 1;
 

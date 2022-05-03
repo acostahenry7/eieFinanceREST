@@ -64,6 +64,14 @@ db.customer.hasOne(db.loanApplication, {
   foreignKey: "customer_id",
 });
 
+db.user.belongsTo(db.employee, {
+  foreignKey: "employee_id",
+});
+
+db.employee.hasOne(db.user, {
+  foreignKey: "employee_id",
+});
+
 // db.paymentRouterDetail.hasMany(db.loan, {
 //     foreignKey: 'loan_payment_address_id'
 // })

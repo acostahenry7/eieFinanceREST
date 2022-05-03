@@ -28,7 +28,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 
     console.log("Employee ID", req.params.employeeId);
     let query = "";
-    if (req.params.employeeId == 0) {
+    if (req.params.employeeId == '0') {
       query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code, c.image_url
                     FROM loan_application la
                     JOIN customer c on (la.customer_id = c.customer_id)`;
@@ -45,9 +45,11 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                                                               where employee_id='${req.params.employeeId}'))	
                     and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')`;
     }
+    
+    try {
+      const [data, meta] = await db.sequelize.query(query);
 
-    const [data, meta] = await db.sequelize.query(query);
-
+      
     const results = {};
 
     if (endIndex < data.length) {
@@ -78,6 +80,12 @@ controller.getCustomersByEmployeeId = async (req, res) => {
     ];
 
     res.send(results);
+
+    } catch (error) {
+      console.log("Admin customers", error);
+    }
+   
+
   }
 };
 
