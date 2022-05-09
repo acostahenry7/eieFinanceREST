@@ -139,12 +139,14 @@ module.exports = (app, storage) => {
     }).then(async (user) => {
       console.log(user);
       let query = "";
-      query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, c.first_name || ' ' || c.last_name as name, c.street as location
+      query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, 
+c.first_name || ' ' || c.last_name as name, c.street as location, s.name as section, s.section_id
         from payment_router_detail prd
         inner join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
         inner join loan l on (lpa.loan_id = l.loan_id)
         inner join loan_application la on ( l.loan_application_id = la.loan_application_id )
         inner join customer c on ( la.customer_id = c.customer_id)
+		join section s on (lpa.section_id = s.section_id)
         where payment_router_id = (select payment_router_id
         from payment_router
         where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')
@@ -154,7 +156,10 @@ module.exports = (app, storage) => {
 
       try {
         const [data, meta] = await db.sequelize.query(query);
-        res.send(data);
+        let arr = [];
+        arr = _.groupBy(data, (item) => item.section);
+        console.log(arr);
+        res.send(arr);
       } catch (error) {
         console.log(error);
       }
