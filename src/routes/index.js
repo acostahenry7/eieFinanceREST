@@ -300,6 +300,7 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
         "discount_mora",
         "discount",
         "total_paid",
+        "cashback",
       ],
       where: {
         receipt_id: req.body.receiptId,
@@ -312,12 +313,13 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
           transactions.push({
             quota_number: amortization.dataValues.quota_number,
             date: amortization.dataValues.payment_date,
-            fixedAmount: amortization.dataValues.amount + ".00",
-            mora: amortization.dataValues.mora + ".00",
+            fixedAmount: amortization.dataValues.amount,
+            mora: amortization.dataValues.mora,
             totalPaid: amortization.dataValues.total_paid,
             discountInterest: amortization.dataValues.discount_interest,
             discountMora: amortization.dataValues.discount_mora,
             discount: amortization.dataValues.discount,
+            cashBack: amortization.dataValues.cashback,
           });
         });
 

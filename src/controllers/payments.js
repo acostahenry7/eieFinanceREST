@@ -184,15 +184,18 @@ controller.createPayment = async (req, res) => {
                               })(),
                               amount: item.amount,
                               mora: item.mora,
-                              discount: parseFloat(item.discountInterest)+ parseFloat(item.discountMora),
+                              discount:
+                                parseFloat(item.discountInterest) +
+                                parseFloat(item.discountMora),
                               total_paid: item.totalPaid,
                               discount_interest: item.discountInterest,
-                              discount_mora: item.discountMora
+                              discount_mora: item.discountMora,
+                              cashback: req.body.payment.cashBack,
                             });
                           });
 
-                          ReceiptTransaction.bulkCreate(bulkTransactions).then(
-                            (receiptTransaction) => {
+                          ReceiptTransaction.bulkCreate(bulkTransactions)
+                            .then((receiptTransaction) => {
                               console.log("BULK", bulkTransactions);
                               LoanPaymentAddress.findOne({
                                 attributes: ["section_id"],
@@ -215,8 +218,8 @@ controller.createPayment = async (req, res) => {
                                   res.send(results);
                                 });
                               });
-                            }
-                          ).catch(err => console.log(err));
+                            })
+                            .catch((err) => console.log(err));
                         })
                         .catch((err) => {
                           console.log("Error creating receipt " + err);
