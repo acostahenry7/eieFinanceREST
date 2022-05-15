@@ -45,6 +45,7 @@ const {
   amortization,
   employeeZone,
 } = require("../models/index");
+const { resolveObjectURL } = require("buffer");
 
 module.exports = (app, storage) => {
   const upload = multer({ storage });
@@ -65,6 +66,7 @@ module.exports = (app, storage) => {
     stream.on("open", () => {
       var html = buildReceiptHtml(req.body);
       stream.end(html);
+      console.log(html);
 
       res.send(
         "File Created on " +
@@ -476,6 +478,10 @@ function buildReceiptHtml(object) {
         padding: 0 15px;
       }
 
+      .r_body_detail_data h6{
+        font-size: 12px;
+      }
+
       .r_section {
         margin-top: 15px;
         display: flex;
@@ -489,6 +495,11 @@ function buildReceiptHtml(object) {
       .title {
         font-weight: bold;
       }
+
+      .r_footer {
+        min-height: 20px;
+      }
+
     </style>
     <title>Document</title>
   </head>
@@ -496,12 +507,18 @@ function buildReceiptHtml(object) {
     <div class="container box">
       <div class="card shadow border-0 r_container">
         <div class="r_header">
-          <img
+          <!--
+          
+          Aquí va el logo, insertar la lógica correspondiente para traerlo desde
+          configuración
+          -->
+
+          <!-- <img
             src="http://op.grupoavant.com.do:26015/assets/profile/banner1.png"
             width="100%"
             height="100px"
             alt=""
-          />
+          /> -->
         </div>
         <div class="r_body">
           <div class="r_body_info">
@@ -521,35 +538,41 @@ function buildReceiptHtml(object) {
               </div>
               <div class="col-md-6">
                 <h6 class="title">Fecha:</h6>
-                <h6>12/03/2022</h6>
+                <h6>12/03/2022 12:05 P.M</h6>
               </div>
             </div>
             <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Préstamo</h6>
+                  <h6>128305</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="title">Cliente</h6>
+                <h6>Henry Acosta</h6>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Tipo de Pago</h6>
+                  <h6>Efectivo</h6>
+                </div>
+              </div>
               <div class="col-md-6">
                 <div>
                   <h6 class="title">Zona</h6>
                   <h6>Villa Mella</h6>
                 </div>
               </div>
-              <div class="col-md-6">
-                <h6 class="title">No. Préstamo</h6>
-                <h6>13672</h6>
-              </div>
-            </div>
-            <div class="row mt-3">
-              <div class="col-md-6">
-                <div>
-                  <h6 class="title">Nombre Cliente</h6>
-                  <h6>Villa Mella</h6>
-                </div>
-              </div>
             </div>
           </div>
           <div class="r_body_detail">
-            <div class="r_section">
-              <h6 class="text-light title">Transacciones</h6>
+            <div class="r_section" style="background-color:  #fff">
+              <h6 class="text-dark title">Transacciones</h6>
             </div>
-            <div class="r_body_detail_headers" style="width: 100%">
+            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
               <div class="row">
                 <div style="width: 16%">
                   <h6 class="title">No. Cuota</h6>
@@ -567,11 +590,69 @@ function buildReceiptHtml(object) {
                   <h6 class="title">Pagado</h6>
                 </div>
               </div>
+              <div class="mt-2 r_body_detail_data" style="display: block">
               ${generateTrasactionsTemplate(object)}
+              </div>
+              <div class="row mt-4">
+                <div class="col-md-4">
+
+                </div>
+                <div class="col-md-8" style="list-style: none; font-size: 13px;">
+                  <div style="display: flex; flex-direction: row">
+                    <div class="col-md-6">
+                      <li>SubTotal</li>
+                      <li>Descuento</li>
+                      <li>Total</li>
+                      <li>Monto Recibido</li>
+                      <li>Saldo Pendiente</li>
+                      <li>Cambio</li>
+                    </div>
+                    <div class="col-md-6">
+                      <ul style="list-style: none;">
+                      <li>RD$ ${
+                        hasDecimal(object.subTotal)
+                          ? object.subTotal
+                          : object.subTotal + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.discount)
+                          ? object.discount
+                          : object.discount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.total)
+                          ? object.total
+                          : object.total + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.receivedAmount)
+                          ? object.receivedAmount
+                          : object.receivedAmount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.pendingAmount)
+                          ? object.pendingAmount
+                          : object.pendingAmount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.cashBack)
+                          ? object.cashBack
+                          : object.cashBack + ".00"
+                      }</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="r_footer"></div>
+        <div class="r_footer mb-3">
+          <h6 class="text-center mt-4" style="font-size: 11px; font-weight: bold">
+            Nota: No somos responsables de dinero entregado sin recibo.
+          </h6>
+          <h5 class="text-center mt-1" style="font-size: 14px; font-weight: bold">--- COPIA DE RECIBO ---</h5>
+        </div>
       </div>
     </div>
   </body>
@@ -584,14 +665,65 @@ function generateTrasactionsTemplate(object) {
 
   let transactionTemplate = `<div></div>`;
   object.amortization?.map((item) => {
-    arr.push(`
-    <div class="row">
-      ${item.quota}
-    </div>
+    arr.push(`  
+            <ul style="list-style: none; padding: 0">
+              <li>
+                <div style="display: flex">
+                  <div style="width: 16%">
+                    <h6 class="title">${item.quotaNumber}</h6>
+                  </div>
+                  <div style="width: 30%">
+                    <h6 class="title">${item.date}</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">${
+                      hasDecimal(item.amount)
+                        ? item.amount
+                        : item.amount + ".00"
+                    }</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">${
+                      hasDecimal(item.mora) ? item.mora : item.mora + ".00"
+                    }</h6>
+                  </div>
+                  <div style="width: 15%">
+                    <h6 class="title">${
+                      hasDecimal(item.totalPaid)
+                        ? item.totalPaid
+                        : item.totalPaid + ".00"
+                    }</h6>
+                  </div
+                </div>
+              </li>
+              <li>
+                <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Mora${
+                    hasDecimal(item.discountMora)
+                      ? item.discountMora
+                      : item.discountMora + ".00"
+                  }</h5>
+                </div>
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Interes${
+                    hasDecimal(item.discountInterest)
+                      ? item.discountInterest
+                      : item.discountInterest + ".00"
+                  }</h5>
+                </div>
+                </div>
+              </li>
+
+            </ul>
     `);
   });
 
   console.log(arr.join(",").toString().replaceAll(",", ""));
 
   return arr.join(",").toString().replaceAll(",", "");
+}
+
+function hasDecimal(num) {
+  return !!(num % 1);
 }
