@@ -58,15 +58,29 @@ module.exports = (app, storage) => {
     });
   });
 
-  app.post("/api/upload/receipt", (req, res) => {
+  app.post("/api/upload/receipt", async (req, res) => {
     var filePath = path.join(__dirname, "../assets/res/receipts/");
-    var fileName = "test2.html";
+    var fileName = "temp_receipt.html";
     var stream = fs.createWriteStream(filePath + fileName);
 
-    stream.on("open", () => {
+    stream.on("open", async () => {
       var html = buildReceiptHtml(req.body);
       stream.end(html);
-      console.log(html);
+      //console.log(html);
+
+      const [nextLoid] = await db.sequelize.query(
+        `select max(loid::int) as current_id from pg_largeobject `
+      );
+
+      console.log(nextLoid);
+
+      const [data, meta] = await db.sequelize.query(
+        `update pg_largeobject
+        set data=decode('${html}', 'escape')
+        where loid::int = ${nextLoid[0].current_id}`
+      );
+
+      //console.log(data);
 
       res.send(
         "File Created on " +
@@ -478,6 +492,16 @@ function buildReceiptHtml(object) {
         padding: 0 15px;
       }
 
+      .r_body_detail_data {
+        max-height: 180px;
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+      }
+
+      .r_body_detail_data::-webkit-scrollbar {
+        display: none
+      }
+
       .r_body_detail_data h6{
         font-size: 12px;
       }
@@ -532,38 +556,38 @@ function buildReceiptHtml(object) {
             <div class="row">
               <div class="col-md-6">
                 <div>
-                  <h6 class="title">Número Recibo</h6>
-                  <h6>0000-0000</h6>
+                  <h6 class="title">Numero Recibo</h6>
+                  <h6>${object.receiptNumber}</h6>
                 </div>
               </div>
               <div class="col-md-6">
                 <h6 class="title">Fecha:</h6>
-                <h6>12/03/2022 12:05 P.M</h6>
+                <h6>${object.date}</h6>
               </div>
             </div>
             <div class="row mt-3">
               <div class="col-md-6">
                 <div>
-                  <h6 class="title">Préstamo</h6>
-                  <h6>128305</h6>
+                  <h6 class="title">Prestamo</h6>
+                  <h6>${object.loanNumber}</h6>
                 </div>
               </div>
               <div class="col-md-6">
                 <h6 class="title">Cliente</h6>
-                <h6>Henry Acosta</h6>
+                <h6>${object.customer}</h6>
               </div>
             </div>
             <div class="row mt-3">
               <div class="col-md-6">
                 <div>
                   <h6 class="title">Tipo de Pago</h6>
-                  <h6>Efectivo</h6>
+                  <h6>${object.paymentType}</h6>
                 </div>
               </div>
               <div class="col-md-6">
                 <div>
                   <h6 class="title">Zona</h6>
-                  <h6>Villa Mella</h6>
+                  <h6>${object.section}</h6>
                 </div>
               </div>
             </div>
@@ -699,14 +723,14 @@ function generateTrasactionsTemplate(object) {
               <li>
                 <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
                 <div style="">
-                  <h5 style="font-size: 12px">Desc. Mora${
+                  <h5 style="font-size: 12px">Desc. Mora ${
                     hasDecimal(item.discountMora)
                       ? item.discountMora
                       : item.discountMora + ".00"
                   }</h5>
                 </div>
                 <div style="">
-                  <h5 style="font-size: 12px">Desc. Interes${
+                  <h5 style="font-size: 12px">Desc. Interes ${
                     hasDecimal(item.discountInterest)
                       ? item.discountInterest
                       : item.discountInterest + ".00"
