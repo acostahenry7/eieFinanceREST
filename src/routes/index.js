@@ -58,37 +58,37 @@ module.exports = (app, storage) => {
     });
   });
 
-  app.post("/api/upload/receipt", async (req, res) => {
-    var filePath = path.join(__dirname, "../assets/res/receipts/");
-    var fileName = "temp_receipt.html";
-    var stream = fs.createWriteStream(filePath + fileName);
+  // app.post("/api/upload/receipt", async (req, res) => {
+  //   var filePath = path.join(__dirname, "../assets/res/receipts/");
+  //   var fileName = "temp_receipt.html";
+  //   var stream = fs.createWriteStream(filePath + fileName);
 
-    stream.on("open", async () => {
-      var html = buildReceiptHtml(req.body);
-      stream.end(html);
-      //console.log(html);
+  //   stream.on("open", async () => {
+  //     var html = buildReceiptHtml(req.body);
+  //     stream.end(html);
+  //     //console.log(html);
 
-      const [nextLoid] = await db.sequelize.query(
-        `select max(loid::int) as current_id from pg_largeobject `
-      );
+  //     const [nextLoid] = await db.sequelize.query(
+  //       `select max(loid::int) as current_id from pg_largeobject `
+  //     );
 
-      console.log(nextLoid);
+  //     console.log(nextLoid);
 
-      const [data, meta] = await db.sequelize.query(
-        `update pg_largeobject
-        set data=decode('${html}', 'escape')
-        where loid::int = ${nextLoid[0].current_id}`
-      );
+  //     const [data, meta] = await db.sequelize.query(
+  //       `update pg_largeobject
+  //       set data=decode('${html}', 'escape')
+  //       where loid::int = ${nextLoid[0].current_id}`
+  //     );
 
-      //console.log(data);
+  //     //console.log(data);
 
-      res.send(
-        "File Created on " +
-          "http://localhost:3000/assets/res/receipts/" +
-          fileName
-      );
-    });
-  });
+  //     res.send(
+  //       "File Created on " +
+  //         "http://localhost:3000/assets/res/receipts/" +
+  //         fileName
+  //     );
+  //   });
+  // });
 
   //Login
   router.post("/login", authController.login);
@@ -694,10 +694,10 @@ function generateTrasactionsTemplate(object) {
               <li>
                 <div style="display: flex">
                   <div style="width: 16%">
-                    <h6 class="title">${item.quotaNumber}</h6>
+                    <h6 class="title">${item.quota_number}</h6>
                   </div>
                   <div style="width: 30%">
-                    <h6 class="title">${item.date}</h6>
+                    <h6 class="title">${item.payment_date}</h6>
                   </div>
                   <div style="width: 19%">
                     <h6 class="title">${
@@ -713,9 +713,9 @@ function generateTrasactionsTemplate(object) {
                   </div>
                   <div style="width: 15%">
                     <h6 class="title">${
-                      hasDecimal(item.totalPaid)
-                        ? item.totalPaid
-                        : item.totalPaid + ".00"
+                      hasDecimal(item.total_paid)
+                        ? item.total_paid
+                        : item.total_paid + ".00"
                     }</h6>
                   </div
                 </div>
@@ -724,16 +724,16 @@ function generateTrasactionsTemplate(object) {
                 <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Mora ${
-                    hasDecimal(item.discountMora)
-                      ? item.discountMora
-                      : item.discountMora + ".00"
+                    hasDecimal(item.discount_mora)
+                      ? item.discount_mora
+                      : item.discount_mora + ".00"
                   }</h5>
                 </div>
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Interes ${
                     hasDecimal(item.discountInterest)
-                      ? item.discountInterest
-                      : item.discountInterest + ".00"
+                      ? item.discount_interest
+                      : item.discount_interest + ".00"
                   }</h5>
                 </div>
                 </div>

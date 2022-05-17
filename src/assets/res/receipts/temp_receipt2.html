@@ -1,0 +1,238 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <style>
+      .box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px 0px;
+      }
+
+      .r_container {
+        background-color: "#FFF";
+        width: 400px;
+      }
+
+      .r_header {
+        padding: 15px;
+      }
+
+      .r_body h6 {
+        font-size: 14px;
+        margin: 0;
+      }
+      .r_body_info {
+        padding: 0 15px;
+      }
+
+      .r_body_detail {
+        padding: 0 15px;
+      }
+
+      .r_body_detail_data {
+        max-height: 180px;
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+      }
+
+      .r_body_detail_data::-webkit-scrollbar {
+        display: none
+      }
+
+      .r_body_detail_data h6{
+        font-size: 12px;
+      }
+
+      .r_section {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid black;
+        background-color: black;
+        margin-bottom: 15px;
+      }
+
+      .title {
+        font-weight: bold;
+      }
+
+      .r_footer {
+        min-height: 20px;
+      }
+
+    </style>
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="container box">
+      <div class="card shadow border-0 r_container">
+        <div class="r_header">
+          <!--
+          
+          Aquí va el logo, insertar la lógica correspondiente para traerlo desde
+          configuración
+          -->
+
+          <!-- <img
+            src="http://op.grupoavant.com.do:26015/assets/profile/banner1.png"
+            width="100%"
+            height="100px"
+            alt=""
+          /> -->
+        </div>
+        <div class="r_body">
+          <div class="r_body_info">
+            <div style="text-align: center">
+              <h6 style="font-weight: bold">PRINCIPAL</h6>
+              <h6 style="font-weight: bold">809654568</h6>
+            </div>
+            <div class="r_section">
+              <h6 class="title text-light">Recibo</h6>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Numero Recibo</h6>
+                  <h6>7648-4187</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="title">Fecha:</h6>
+                <h6>16/5/2022  22:7 PM</h6>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Prestamo</h6>
+                  <h6>13672</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="title">Cliente</h6>
+                <h6>undefined</h6>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Tipo de Pago</h6>
+                  <h6>CASH</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Zona</h6>
+                  <h6>undefined</h6>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="r_body_detail">
+            <div class="r_section" style="background-color:  #fff">
+              <h6 class="text-dark title">Transacciones</h6>
+            </div>
+            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
+              <div class="row">
+                <div style="width: 16%">
+                  <h6 class="title">No. Cuota</h6>
+                </div>
+                <div style="width: 27%">
+                  <h6 class="title">Fecha Cuota</h6>
+                </div>
+                <div style="width: 18%">
+                  <h6 class="title">Monto</h6>
+                </div>
+                <div style="width: 18%">
+                  <h6 class="title">Mora</h6>
+                </div>
+                <div style="width: 21%">
+                  <h6 class="title">Pagado</h6>
+                </div>
+              </div>
+              <div class="mt-2 r_body_detail_data" style="display: block">
+                
+            <ul style="list-style: none; padding: 0">
+              <li>
+                <div style="display: flex">
+                  <div style="width: 16%">
+                    <h6 class="title">3</h6>
+                  </div>
+                  <div style="width: 30%">
+                    <h6 class="title">Sun Jan 30 2022 20:00:00 GMT-0400 (Bolivia Time)</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">800.00</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">20.00.00</h6>
+                  </div>
+                  <div style="width: 15%">
+                    <h6 class="title">655.00</h6>
+                  </div
+                </div>
+              </li>
+              <li>
+                <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Mora 10.00.00</h5>
+                </div>
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Interes 10.00.00</h5>
+                </div>
+                </div>
+              </li>
+
+            </ul>
+    
+              </div>
+              <div class="row mt-4">
+                <div class="col-md-4">
+
+                </div>
+                <div class="col-md-8" style="list-style: none; font-size: 13px;">
+                  <div style="display: flex; flex-direction: row">
+                    <div class="col-md-6">
+                      <li>SubTotal</li>
+                      <li>Descuento</li>
+                      <li>Total</li>
+                      <li>Monto Recibido</li>
+                      <li>Saldo Pendiente</li>
+                      <li>Cambio</li>
+                    </div>
+                    <div class="col-md-6">
+                      <ul style="list-style: none;">
+                      <li>RD$ 675.00</li>
+                      <li>RD$ 20.00</li>
+                      <li>RD$ 655.00</li>
+                      <li>RD$ 655.00</li>
+                      <li>RD$ 0.00</li>
+                      <li>RD$ 0.00</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="r_footer mb-3">
+          <h6 class="text-center mt-4" style="font-size: 11px; font-weight: bold">
+            Nota: No somos responsables de dinero entregado sin recibo.
+          </h6>
+          <h5 class="text-center mt-1" style="font-size: 14px; font-weight: bold">--- COPIA DE RECIBO ---</h5>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

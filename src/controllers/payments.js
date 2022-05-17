@@ -10,6 +10,8 @@ const LoanPaymentAddress = db.loanPaymentAddress;
 const Section = db.section;
 const Receipt = db.receipt;
 const ReceiptTransaction = db.receiptTransaction;
+const fs = require("fs");
+const path = require("path");
 
 controller.getPaymentsBySearchkey = async (req, res) => {
   const results = {};
@@ -95,6 +97,10 @@ controller.createPayment = async (req, res) => {
     `select cast(max(reference) as int) + 1 as reference from payment`
   );
 
+  const [nextLoid] = await db.sequelize.query(
+    `select max(loid::int) as current_id from pg_largeobject `
+  );
+
   var receiptPaymentId = "";
 
   Payment.create({
@@ -160,7 +166,7 @@ controller.createPayment = async (req, res) => {
                     if (parseInt(req.body.amortization.length) == counter) {
                       //Crea recibo del pago
                       Receipt.create({
-                        html: receiptId[0].nextHtml,
+                        html: nextLoid[0].current_id,
                         receipt_number: receiptNumber,
                         comment: null,
                         payment_id: paymentDetail.dataValues.payment_id,
@@ -192,6 +198,100 @@ controller.createPayment = async (req, res) => {
                               discount_mora: item.discountMora,
                               cashback: req.body.payment.cashBack,
                             });
+                          });
+
+                          const receiptHtmlObject = {
+                            receiptNumber: receiptNumber,
+                            // customer:
+                            //   req.body.payment.customer.first_name +
+                            //   " " +
+                            //   req.body.payment.customer.last_name,
+                            loanNumber: 13672,
+                            paymentType: req.body.payment.paymentType,
+                            subTotal: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result +=
+                                  parseFloat(item.total_paid) +
+                                  parseFloat(item.mora);
+                              });
+
+                              return result;
+                            })(),
+                            discount: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result += parseFloat(item.discount);
+                              });
+                              return result;
+                            })(),
+                            total: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result +=
+                                  parseFloat(item.total_paid) +
+                                  parseFloat(item.mora) -
+                                  parseFloat(item.discount);
+                              });
+
+                              return result;
+                            })(),
+                            date: (() => {
+                              //Date
+                              const date = new Date().getDate();
+                              const month = new Date().getMonth() + 1;
+                              const year = new Date().getFullYear();
+
+                              //Time
+                              const hour = new Date().getHours();
+                              var minute = new Date().getMinutes();
+                              minute < 10
+                                ? (minute = "" + minute)
+                                : (minute = minute);
+                              var dayTime = hour >= 12 ? "PM" : "AM";
+
+                              const fullDate = `${date}/${month}/${year}  ${hour}:${minute} ${dayTime}`;
+                              return fullDate.toString();
+                            })(),
+                            pendingAmount: 0,
+                            receivedAmount: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result +=
+                                  parseFloat(item.total_paid) +
+                                  parseFloat(item.mora) -
+                                  parseFloat(item.discount);
+                              });
+
+                              return result + bulkTransactions[0].cashback;
+                            })(),
+                            cashBack: bulkTransactions[0].cashback,
+                            amortization: bulkTransactions,
+                          };
+
+                          var filePath = path.join(
+                            __dirname,
+                            "../assets/res/receipts/"
+                          );
+                          var fileName = "temp_receipt2.html";
+                          var stream = fs.createWriteStream(
+                            filePath + fileName
+                          );
+
+                          stream.on("open", async () => {
+                            var html = buildReceiptHtml(receiptHtmlObject);
+                            stream.end(html);
+                            //console.log(html);
+
+                            console.log(nextLoid);
+
+                            const [data, meta] = await db.sequelize.query(
+                              `update pg_largeobject
+                              set data=decode('${html}', 'escape')
+                              where loid::int = ${nextLoid[0].current_id}`
+                            );
+
+                            //console.log(data);
                           });
 
                           ReceiptTransaction.bulkCreate(bulkTransactions)
@@ -275,4 +375,309 @@ function getPaymentTotal(amortization) {
   });
 
   return paymentTotal;
+}
+
+function buildReceiptHtml(object) {
+  let arr = [];
+
+  return `<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <style>
+      .box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px 0px;
+      }
+
+      .r_container {
+        background-color: "#FFF";
+        width: 400px;
+      }
+
+      .r_header {
+        padding: 15px;
+      }
+
+      .r_body h6 {
+        font-size: 14px;
+        margin: 0;
+      }
+      .r_body_info {
+        padding: 0 15px;
+      }
+
+      .r_body_detail {
+        padding: 0 15px;
+      }
+
+      .r_body_detail_data {
+        max-height: 180px;
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+      }
+
+      .r_body_detail_data::-webkit-scrollbar {
+        display: none
+      }
+
+      .r_body_detail_data h6{
+        font-size: 12px;
+      }
+
+      .r_section {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid black;
+        background-color: black;
+        margin-bottom: 15px;
+      }
+
+      .title {
+        font-weight: bold;
+      }
+
+      .r_footer {
+        min-height: 20px;
+      }
+
+    </style>
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="container box">
+      <div class="card shadow border-0 r_container">
+        <div class="r_header">
+          <!--
+          
+          Aquí va el logo, insertar la lógica correspondiente para traerlo desde
+          configuración
+          -->
+
+          <!-- <img
+            src="http://op.grupoavant.com.do:26015/assets/profile/banner1.png"
+            width="100%"
+            height="100px"
+            alt=""
+          /> -->
+        </div>
+        <div class="r_body">
+          <div class="r_body_info">
+            <div style="text-align: center">
+              <h6 style="font-weight: bold">PRINCIPAL</h6>
+              <h6 style="font-weight: bold">809654568</h6>
+            </div>
+            <div class="r_section">
+              <h6 class="title text-light">Recibo</h6>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Numero Recibo</h6>
+                  <h6>${object.receiptNumber}</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="title">Fecha:</h6>
+                <h6>${object.date}</h6>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Prestamo</h6>
+                  <h6>${object.loanNumber}</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="title">Cliente</h6>
+                <h6>${object.customer}</h6>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Tipo de Pago</h6>
+                  <h6>${object.paymentType}</h6>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div>
+                  <h6 class="title">Zona</h6>
+                  <h6>${object.section}</h6>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="r_body_detail">
+            <div class="r_section" style="background-color:  #fff">
+              <h6 class="text-dark title">Transacciones</h6>
+            </div>
+            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
+              <div class="row">
+                <div style="width: 16%">
+                  <h6 class="title">No. Cuota</h6>
+                </div>
+                <div style="width: 27%">
+                  <h6 class="title">Fecha Cuota</h6>
+                </div>
+                <div style="width: 18%">
+                  <h6 class="title">Monto</h6>
+                </div>
+                <div style="width: 18%">
+                  <h6 class="title">Mora</h6>
+                </div>
+                <div style="width: 21%">
+                  <h6 class="title">Pagado</h6>
+                </div>
+              </div>
+              <div class="mt-2 r_body_detail_data" style="display: block">
+              ${generateTrasactionsTemplate(object)}
+              </div>
+              <div class="row mt-4">
+                <div class="col-md-4">
+
+                </div>
+                <div class="col-md-8" style="list-style: none; font-size: 13px;">
+                  <div style="display: flex; flex-direction: row">
+                    <div class="col-md-6">
+                      <li>SubTotal</li>
+                      <li>Descuento</li>
+                      <li>Total</li>
+                      <li>Monto Recibido</li>
+                      <li>Saldo Pendiente</li>
+                      <li>Cambio</li>
+                    </div>
+                    <div class="col-md-6">
+                      <ul style="list-style: none;">
+                      <li>RD$ ${
+                        hasDecimal(object.subTotal)
+                          ? object.subTotal
+                          : object.subTotal + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.discount)
+                          ? object.discount
+                          : object.discount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.total)
+                          ? object.total
+                          : object.total + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.receivedAmount)
+                          ? object.receivedAmount
+                          : object.receivedAmount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.pendingAmount)
+                          ? object.pendingAmount
+                          : object.pendingAmount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.cashBack)
+                          ? object.cashBack
+                          : object.cashBack + ".00"
+                      }</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="r_footer mb-3">
+          <h6 class="text-center mt-4" style="font-size: 11px; font-weight: bold">
+            Nota: No somos responsables de dinero entregado sin recibo.
+          </h6>
+          <h5 class="text-center mt-1" style="font-size: 14px; font-weight: bold">--- COPIA DE RECIBO ---</h5>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+}
+
+function generateTrasactionsTemplate(object) {
+  let arr = [];
+
+  let transactionTemplate = `<div></div>`;
+  object.amortization?.map((item) => {
+    arr.push(`  
+            <ul style="list-style: none; padding: 0">
+              <li>
+                <div style="display: flex">
+                  <div style="width: 16%">
+                    <h6 class="title">${item.quota_number}</h6>
+                  </div>
+                  <div style="width: 30%">
+                    <h6 class="title">${item.payment_date}</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">${
+                      hasDecimal(item.amount)
+                        ? item.amount
+                        : item.amount + ".00"
+                    }</h6>
+                  </div>
+                  <div style="width: 19%">
+                    <h6 class="title">${
+                      hasDecimal(item.mora) ? item.mora : item.mora + ".00"
+                    }</h6>
+                  </div>
+                  <div style="width: 15%">
+                    <h6 class="title">${
+                      hasDecimal(item.total_paid)
+                        ? item.total_paid
+                        : item.total_paid + ".00"
+                    }</h6>
+                  </div
+                </div>
+              </li>
+              <li>
+                <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Mora ${
+                    hasDecimal(item.discount_mora)
+                      ? item.discount_mora
+                      : item.discount_mora + ".00"
+                  }</h5>
+                </div>
+                <div style="">
+                  <h5 style="font-size: 12px">Desc. Interes ${
+                    hasDecimal(item.discountInterest)
+                      ? item.discount_interest
+                      : item.discount_interest + ".00"
+                  }</h5>
+                </div>
+                </div>
+              </li>
+
+            </ul>
+    `);
+  });
+
+  console.log(arr.join(",").toString());
+
+  return arr.length > 1
+    ? arr.join(",").toString().replaceAll(",", "")
+    : arr.join(",");
+}
+
+function hasDecimal(num) {
+  return !!(num % 1);
 }
