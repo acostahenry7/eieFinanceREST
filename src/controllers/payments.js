@@ -371,7 +371,7 @@ function getPaymentTotal(amortization) {
   var paymentTotal = 0;
 
   amortization.map((quota) => {
-    paymentTotal += quota.totalPaid;
+    paymentTotal += parseFloat(quota.totalPaid);
   });
 
   return paymentTotal;
