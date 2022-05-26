@@ -367,6 +367,19 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
   });
 
   //Visits
+  router.post("/visits", async (req, res) => {
+    const [data, meta] = await db.sequelize.query(
+      `select visit_id, user_name, visit_date, commentary, first_name || ' ' || last_name as name, actual_location
+      from collector_customer_visits ccv
+      inner join customer c on (ccv.customer_id = c.customer_id)
+      where user_id='${req.body.userId}'
+      and visit_date::date between '${req.body.startingDate}' and '${req.body.endDate}'
+      order by visit_date desc`
+    );
+
+    res.send(data);
+  });
+
   router.post("/visit", (req, res) => {
     Visit.create({
       customer_id: req.body.customerId,
