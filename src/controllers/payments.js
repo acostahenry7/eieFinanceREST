@@ -189,7 +189,7 @@ controller.createPayment = async (req, res) => {
                                 return date;
                               })(),
                               amount: item.amount,
-                              mora: item.mora,
+                              mora: item.mora - item.mora,
                               discount:
                                 parseFloat(item.discountInterest) +
                                 parseFloat(item.discountMora),
