@@ -374,6 +374,7 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
       inner join customer c on (ccv.customer_id = c.customer_id)
       where user_id='${req.body.userId}'
       and visit_date::date between '${req.body.startingDate}' and '${req.body.endDate}'
+      and commentary != 'COBRO'
       order by visit_date desc`
     );
 
