@@ -310,11 +310,26 @@ controller.createPayment = async (req, res) => {
                                   where: {
                                     section_id: sectionId.dataValues.section_id,
                                   },
-                                }).then((section) => {
+                                }).then(async (section) => {
+                                  const [zone, metadata] = await db.sequelize
+                                    .query(`
+                                        select name 
+                                        from zone 
+                                        where zone_id = (select zone_id from zone_neighbor_hood where section_id = '${sectionId.dataValues.section_id}'  limit 1)`);
+
+                                  console.log(zone);
                                   results.loanDetails = {
-                                    section: section.dataValues.name,
+                                    section:
+                                      zone[0].name +
+                                      " " +
+                                      section.dataValues.name,
+                                    // section.dataValues.name +
+                                    // " " +
+
+                                    //zone: zone[0].name,
                                   };
 
+                                  console.log(results);
                                   res.send(results);
                                 });
                               });
