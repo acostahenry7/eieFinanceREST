@@ -98,7 +98,7 @@ controller.createPayment = async (req, res) => {
   );
 
   const [nextLoid] = await db.sequelize.query(
-    `select max(loid::int) as current_id from pg_largeobject `
+    `select max(loid::int) + 1 as current_id from pg_largeobject `
   );
 
   var receiptPaymentId = "";
@@ -166,7 +166,7 @@ controller.createPayment = async (req, res) => {
                     if (parseInt(req.body.amortization.length) == counter) {
                       //Crea recibo del pago
                       Receipt.create({
-                        html: nextLoid[0].current_id,
+                        html: nextLoid[0].current_id.toString(),
                         receipt_number: receiptNumber,
                         comment: null,
                         payment_id: paymentDetail.dataValues.payment_id,
@@ -286,9 +286,11 @@ controller.createPayment = async (req, res) => {
                             console.log(nextLoid);
 
                             const [data, meta] = await db.sequelize.query(
-                              `update pg_largeobject
-                              set data=decode('${html}', 'escape')
-                              where loid::int = ${nextLoid[0].current_id}`
+                              // `update pg_largeobject
+                              // set data=decode('${html}', 'escape')
+                              // where loid::int = ${nextLoid[0].current_id}`
+                              `insert into pg_largeobject(loid, pageno, data) 
+                               values ((select max(loid::int) + 1 from pg_largeobject),0 ,decode('${html}', 'escape'))`
                             );
 
                             //console.log(data);
@@ -474,18 +476,7 @@ function buildReceiptHtml(object) {
     <div class="container box">
       <div class="card shadow border-0 r_container">
         <div class="r_header">
-          <!--
-          
-          Aquí va el logo, insertar la lógica correspondiente para traerlo desde
-          configuración
-          -->
-
-          <!-- <img
-            src="http://op.grupoavant.com.do:26015/assets/profile/banner1.png"
-            width="100%"
-            height="100px"
-            alt=""
-          /> -->
+         
         </div>
         <div class="r_body">
           <div class="r_body_info">
