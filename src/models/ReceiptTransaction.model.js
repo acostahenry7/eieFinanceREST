@@ -35,7 +35,7 @@ module.exports = (sequelize, Sequelize) => {
       total_paid: {
         type: Sequelize.DOUBLE,
       },
-      cashback: {
+      cash_back: {
         type: Sequelize.DOUBLE,
       },
     },
