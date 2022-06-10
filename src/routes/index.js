@@ -58,37 +58,41 @@ module.exports = (app, storage) => {
     });
   });
 
-  // app.post("/api/upload/receipt", async (req, res) => {
-  //   var filePath = path.join(__dirname, "../assets/res/receipts/");
-  //   var fileName = "temp_receipt.html";
-  //   var stream = fs.createWriteStream(filePath + fileName);
+  app.post("/api/upload/receipt", async (req, res) => {
+    // var filePath = path.join(__dirname, "../assets/res/receipts/");
+    // var fileName = "temp_receipt.html";
+    // var stream = fs.createWriteStream(filePath + fileName);
 
-  //   stream.on("open", async () => {
-  //     var html = buildReceiptHtml(req.body);
-  //     stream.end(html);
-  //     //console.log(html);
+    // stream.on("open", async () => {
+    var html = buildReceiptHtml(req.body);
+    console.log("String quantity amount", html.length);
+    const test = splitStrByLength(html, 2048);
+    console.log(test);
 
-  //     const [nextLoid] = await db.sequelize.query(
-  //       `select max(loid::int) as current_id from pg_largeobject `
-  //     );
+    //stream.end(html);
+    //console.log(html);
 
-  //     console.log(nextLoid);
+    // const [nextLoid] = await db.sequelize.query(
+    //   `select max(loid::int) as current_id from pg_largeobject `
+    // );
 
-  //     const [data, meta] = await db.sequelize.query(
-  //       `update pg_largeobject
-  //       set data=decode('${html}', 'escape')
-  //       where loid::int = ${nextLoid[0].current_id}`
-  //     );
+    // console.log(nextLoid);
 
-  //     //console.log(data);
+    // const [data, meta] = await db.sequelize.query(
+    //   `update pg_largeobject
+    //   set data=decode('${html}', 'escape')
+    //   where loid::int = ${nextLoid[0].current_id}`
+    // );
 
-  //     res.send(
-  //       "File Created on " +
-  //         "http://localhost:3000/assets/res/receipts/" +
-  //         fileName
-  //     );
-  //   });
-  // });
+    //console.log(data);
+
+    // res.send(
+    //   "File Created on " +
+    //     "http://localhost:3000/assets/res/receipts/" +
+    //     fileName
+    // );
+    //});
+  });
 
   //Login
   router.post("/login", authController.login);
@@ -760,6 +764,20 @@ function generateTrasactionsTemplate(object) {
   console.log(arr.join(",").toString().replaceAll(",", ""));
 
   return arr.join(",").toString().replaceAll(",", "");
+}
+
+function splitStrByLength(str, size) {
+  console.log("Largo", str.length / 2048);
+  var elements = Math.ceil(str.length / size);
+  var arr = new Array(size);
+  var startPoint = 0;
+
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = str.substr(startPoint, size);
+    startPoint += size;
+  }
+
+  return arr;
 }
 
 function hasDecimal(num) {
