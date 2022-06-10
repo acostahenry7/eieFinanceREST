@@ -397,7 +397,7 @@ function getPaymentTotal(amortization) {
 function buildReceiptHtml(object) {
   let arr = [];
 
-  return `<html lang="en">
+  return `<!DOCTYPE html>
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
