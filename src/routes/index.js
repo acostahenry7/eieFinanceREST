@@ -67,7 +67,7 @@ module.exports = (app, storage) => {
     var html = buildReceiptHtml(req.body);
     console.log("String quantity amount", html.length);
     const test = splitStrByLength(html, 2048);
-    console.log(test);
+    //console.log(test);
 
     //stream.end(html);
     //console.log(html);
@@ -92,6 +92,8 @@ module.exports = (app, storage) => {
     //     fileName
     // );
     //});
+
+    res.send(test);
   });
 
   //Login
@@ -761,24 +763,26 @@ function generateTrasactionsTemplate(object) {
     `);
   });
 
-  console.log(arr.join(",").toString().replaceAll(",", ""));
+  console.log(arr.join(",").toString().replace(",", ""));
 
-  return arr.join(",").toString().replaceAll(",", "");
+  return arr.join(",").toString().replace(",", "");
 }
 
-function splitStrByLength(str, size) {
-  console.log("Largo", str.length / 2048);
-  var elements = Math.ceil(str.length / size);
-  var arr = new Array(size);
-  var startPoint = 0;
+// function splitStrByLength(str, size) {
+//   var elements = Math.floor(str.length / size);
+//   console.log("Largo", elements);
+//   var arr = new Array(elements);
+//   var startPoint = 0;
 
-  for (let i = 0; i < arr.length; i++) {
-    arr[i] = str.substr(startPoint, size);
-    startPoint += size;
-  }
+//   for (let i = 0; i < arr.length; i++) {
+//     arr[i] = str.substr(startPoint, size);
+//     console.log(`Element ${i}`, arr[i]);
+//     startPoint += size;
+//   }
 
-  return arr;
-}
+//   console.log(arr.length);
+//   return arr;
+// }
 
 function hasDecimal(num) {
   return !!(num % 1);

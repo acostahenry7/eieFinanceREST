@@ -284,14 +284,7 @@ controller.createPayment = async (req, res) => {
                             //console.log(html);
 
                             console.log(nextLoid);
-
-                            const [data, meta] = await db.sequelize.query(
-                              // `update pg_largeobject
-                              // set data=decode('${html}', 'escape')
-                              // where loid::int = ${nextLoid[0].current_id}`
-                              `insert into pg_largeobject(loid, pageno, data) 
-                               values ((select max(loid::int) + 1 from pg_largeobject),0 ,decode('${html}', 'escape'))`
-                            );
+                            await splitAndUpdateLOB(html, 2048, db);
 
                             //console.log(data);
                           });
@@ -680,8 +673,34 @@ function generateTrasactionsTemplate(object) {
   console.log(arr.join(",").toString());
 
   return arr.length > 1
-    ? arr.join(",").toString().replaceAll(",", "")
+    ? arr.join(",").toString().replace(",", "")
     : arr.join(",");
+}
+
+async function splitAndUpdateLOB(str, size, db) {
+  var elements = Math.ceil(str.length / size);
+  console.log("Largo", elements);
+  var arr = new Array(elements);
+  var startPoint = 0;
+
+  const [id] = await db.sequelize.query(
+    `select max(loid::int) + 1 as current_id from pg_largeobject`
+  );
+
+  console.log("ID", id[0].current_id);
+
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = str.substr(startPoint, size);
+    console.log(`Element ${i}`, arr[i]);
+    await db.sequelize.query(
+      `insert into pg_largeobject(loid, pageno, data)
+       values (${id[0].current_id},${i} ,decode('${arr[i]}', 'escape'))`
+    );
+    startPoint += size;
+  }
+
+  console.log(arr.length);
+  return arr;
 }
 
 function hasDecimal(num) {
