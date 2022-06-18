@@ -89,16 +89,20 @@ controller.createPayment = async (req, res) => {
   var counter = 1;
   const receiptNumber = generateReceiptNumber();
 
-  const [receiptId, metadata] = await db.sequelize.query(
-    `Select cast(max(html) as int) + 1 as nextHtml from receipt`
-  );
-
   const [reference, meta] = await db.sequelize.query(
     `select cast(max(reference) as int) + 1 as reference from payment`
   );
 
   const [nextLoid] = await db.sequelize.query(
-    `select max(loid::int) + 1 as current_id from pg_largeobject `
+    `select max(html::int) + 1 as current_id from receipt`
+  );
+
+  const [currentLoanId] = await db.sequelize.query(
+    `select loan_number_id as loan_number from loan where loan_id = '${req.body.payment.loanId}'`
+  );
+
+  const [currentCustomer] = await db.sequelize.query(
+    `select first_name, last_name from customer where customer_id = '${req.body.payment.customerId}'`
   );
 
   var receiptPaymentId = "";
@@ -200,14 +204,16 @@ controller.createPayment = async (req, res) => {
                             });
                           });
 
+                          console.log("CURRENT LOAN ID", currentLoanId);
                           const receiptHtmlObject = {
                             receiptNumber: receiptNumber,
-                            // customer:
-                            //   req.body.payment.customer.first_name +
-                            //   " " +
-                            //   req.body.payment.customer.last_name,
-                            loanNumber: 13672,
+                            customer:
+                              currentCustomer[0].first_name +
+                              " " +
+                              currentCustomer[0].last_name,
+                            loanNumber: currentLoanId[0].loan_number,
                             paymentType: req.body.payment.paymentType,
+                            createdBy: req.body.payment.createdBy,
                             subTotal: (() => {
                               let result = 0;
                               bulkTransactions.map((item) => {
@@ -282,9 +288,11 @@ controller.createPayment = async (req, res) => {
                             var html = buildReceiptHtml(receiptHtmlObject);
                             stream.end(html);
                             //console.log(html);
-
+                            await db.sequelize.query(
+                              `update receipt set app_html='${html}' where receipt_id = '${receipt.dataValues.receipt_id}'`
+                            );
                             console.log(nextLoid);
-                            await splitAndUpdateLOB(html, 2048, db);
+                            //await splitAndUpdateLOB(html, 2044, db);
 
                             //console.log(data);
                           });
@@ -518,6 +526,14 @@ function buildReceiptHtml(object) {
                 </div>
               </div>
             </div>
+            <div class="row mt-3">
+            <div class="col-md-6">
+              <div>
+                <h6 class="title">Cajero</h6>
+                <h6>${object.createdBy}</h6>
+              </div>
+            </div>
+          </div>
           </div>
           <div class="r_body_detail">
             <div class="r_section" style="background-color:  #fff">
@@ -616,6 +632,7 @@ function generateTrasactionsTemplate(object) {
 
   let transactionTemplate = `<div></div>`;
   object.amortization?.map((item) => {
+    console.log("AMORTIZATION TO RECEIPT", parseFloat(item.mora));
     arr.push(`  
             <ul style="list-style: none; padding: 0">
               <li>
@@ -624,25 +641,32 @@ function generateTrasactionsTemplate(object) {
                     <h6 class="title">${item.quota_number}</h6>
                   </div>
                   <div style="width: 30%">
-                    <h6 class="title">${item.payment_date}</h6>
+                    <h6 class="title">${item.payment_date
+                      .toISOString()
+                      .split("T")[0]
+                      .split("-")
+                      .reverse()
+                      .join("/")}</h6>
                   </div>
                   <div style="width: 19%">
                     <h6 class="title">${
                       hasDecimal(item.amount)
                         ? item.amount
-                        : item.amount + ".00"
+                        : parseFloat(item.amount) + ".00"
                     }</h6>
                   </div>
                   <div style="width: 19%">
                     <h6 class="title">${
-                      hasDecimal(item.mora) ? item.mora : item.mora + ".00"
+                      hasDecimal(item.mora)
+                        ? item.mora
+                        : parseFloat(item.mora) + ".00"
                     }</h6>
                   </div>
                   <div style="width: 15%">
                     <h6 class="title">${
                       hasDecimal(item.total_paid)
                         ? item.total_paid
-                        : item.total_paid + ".00"
+                        : parseFloat(item.total_paid) + ".00"
                     }</h6>
                   </div
                 </div>
@@ -653,14 +677,14 @@ function generateTrasactionsTemplate(object) {
                   <h5 style="font-size: 12px">Desc. Mora ${
                     hasDecimal(item.discount_mora)
                       ? item.discount_mora
-                      : item.discount_mora + ".00"
+                      : parseFloat(item.discount_mora) + ".00"
                   }</h5>
                 </div>
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Interes ${
                     hasDecimal(item.discountInterest)
                       ? item.discount_interest
-                      : item.discount_interest + ".00"
+                      : parseFloat(item.discount_interest) + ".00"
                   }</h5>
                 </div>
                 </div>
@@ -673,36 +697,37 @@ function generateTrasactionsTemplate(object) {
   console.log(arr.join(",").toString());
 
   return arr.length > 1
-    ? arr.join(",").toString().replace(",", "")
+    ? arr.join(",").toString().replace(/,/g, "")
     : arr.join(",");
 }
 
-async function splitAndUpdateLOB(str, size, db) {
-  var elements = Math.ceil(str.length / size);
-  console.log("Largo", elements);
-  var arr = new Array(elements);
-  var startPoint = 0;
+// async function splitAndUpdateLOB(str, size, db) {
+//   var elements = Math.ceil(str.length / size);
+//   console.log("Largo", elements);
+//   var arr = new Array(elements);
+//   var startPoint = 0;
 
-  const [id] = await db.sequelize.query(
-    `select max(loid::int) + 1 as current_id from pg_largeobject`
-  );
+//   const [id] = await db.sequelize.query(
+//     `select max(loid::int) + 1 as current_id from pg_largeobject`
+//   );
 
-  console.log("ID", id[0].current_id);
+//   console.log("ID", id[0].current_id);
 
-  for (let i = 0; i < arr.length; i++) {
-    arr[i] = str.substr(startPoint, size);
-    console.log(`Element ${i}`, arr[i]);
-    await db.sequelize.query(
-      `insert into pg_largeobject(loid, pageno, data)
-       values (${id[0].current_id},${i} ,decode('${arr[i]}', 'escape'))`
-    );
-    startPoint += size;
-  }
+//   for (let i = 0; i < arr.length; i++) {
+//     arr[i] = str.substr(startPoint, size);
+//     console.log(`Element ${i}`, arr[i]);
+//     await db.sequelize.query(
+//       `insert into pg_largeobject(loid, pageno, data)
+//        values (${id[0].current_id},${i} ,decode('${arr[i]}', 'escape'))`
+//     );
+//     startPoint += size;
+//   }
 
-  console.log(arr.length);
-  return arr;
-}
+//   console.log(arr.length);
+//   return arr;
+// }
 
 function hasDecimal(num) {
-  return !!(num % 1);
+  console.log("has decimal", !!(parseFloat(num) % 1));
+  return !!(parseFloat(num) % 1);
 }
