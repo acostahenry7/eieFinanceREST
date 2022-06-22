@@ -126,6 +126,7 @@ controller.createPayment = async (req, res) => {
     pay_off_loan: req.body.payment.payOffLoan,
     capital_subscription: false,
     status_type: "ENABLED",
+    payment_origin: "APP",
   })
     .then((payment) => {
       req.body.amortization.map(async (quota, index) => {
