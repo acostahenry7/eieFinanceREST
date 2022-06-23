@@ -86,6 +86,9 @@ controller.createPayment = async (req, res) => {
   const results = {};
   var paidLoan = false;
   var totalPaid = getPaymentTotal(req.body.amortization);
+  var currentTotalPaid = totalPaid;
+
+  console.log("Total Paid", totalPaid);
   var counter = 1;
   const receiptNumber = generateReceiptNumber();
 
@@ -103,6 +106,10 @@ controller.createPayment = async (req, res) => {
 
   const [currentCustomer] = await db.sequelize.query(
     `select first_name, last_name from customer where customer_id = '${req.body.payment.customerId}'`
+  );
+
+  const [imgUrl] = await db.sequelize.query(
+    `select image_url from outlet where outlet_id = '${req.body.payment.outletId}'`
   );
 
   var receiptPaymentId = "";
@@ -213,13 +220,14 @@ controller.createPayment = async (req, res) => {
                               " " +
                               currentCustomer[0].last_name,
                             loanNumber: currentLoanId[0].loan_number,
+                            logo: imgUrl[0].image_url,
                             paymentType: req.body.payment.paymentType,
                             createdBy: req.body.payment.createdBy,
                             subTotal: (() => {
                               let result = 0;
                               bulkTransactions.map((item) => {
                                 result +=
-                                  parseFloat(item.total_paid) +
+                                  parseFloat(item.amount) +
                                   parseFloat(item.mora);
                               });
 
@@ -236,9 +244,17 @@ controller.createPayment = async (req, res) => {
                               let result = 0;
                               bulkTransactions.map((item) => {
                                 result +=
-                                  parseFloat(item.total_paid) +
+                                  parseFloat(item.amount) +
                                   parseFloat(item.mora) -
                                   parseFloat(item.discount);
+                              });
+
+                              return result;
+                            })(),
+                            totalPayment: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result += parseFloat(item.total_paid);
                               });
 
                               return result;
@@ -260,18 +276,11 @@ controller.createPayment = async (req, res) => {
                               const fullDate = `${date}/${month}/${year}  ${hour}:${minute} ${dayTime}`;
                               return fullDate.toString();
                             })(),
-                            pendingAmount: 0,
-                            receivedAmount: (() => {
-                              let result = 0;
-                              bulkTransactions.map((item) => {
-                                result +=
-                                  parseFloat(item.total_paid) +
-                                  parseFloat(item.mora) -
-                                  parseFloat(item.discount);
-                              });
-
-                              return result + bulkTransactions[0].cashback;
-                            })(),
+                            totalMora: req.body.payment.totalMora,
+                            pendingAmount:
+                              parseFloat(req.body.payment.pendingAmount) -
+                              currentTotalPaid,
+                            receivedAmount: req.body.payment.receivedAmount,
                             cashBack: bulkTransactions[0].cashback,
                             amortization: bulkTransactions,
                           };
@@ -478,7 +487,9 @@ function buildReceiptHtml(object) {
     <div class="container box">
       <div class="card shadow border-0 r_container">
         <div class="r_header">
-         
+          <image src="${
+            object.logo
+          }" alt="Logo", width="300px", height="200px"/>
         </div>
         <div class="r_body">
           <div class="r_body_info">
@@ -542,19 +553,19 @@ function buildReceiptHtml(object) {
             </div>
             <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
               <div class="row">
-                <div style="width: 16%">
+                <div style="width: 17%">
                   <h6 class="title">No. Cuota</h6>
                 </div>
                 <div style="width: 27%">
                   <h6 class="title">Fecha Cuota</h6>
                 </div>
-                <div style="width: 18%">
+                <div style="width: 19%">
                   <h6 class="title">Monto</h6>
                 </div>
-                <div style="width: 18%">
+                <div style="width: 17%">
                   <h6 class="title">Mora</h6>
                 </div>
-                <div style="width: 21%">
+                <div style="width: 20%">
                   <h6 class="title">Pagado</h6>
                 </div>
               </div>
@@ -562,21 +573,28 @@ function buildReceiptHtml(object) {
               ${generateTrasactionsTemplate(object)}
               </div>
               <div class="row mt-4">
-                <div class="col-md-4">
+                <div class="col-md-2">
 
                 </div>
-                <div class="col-md-8" style="list-style: none; font-size: 13px;">
+                <div class="col-md-10" style="list-style: none; font-size: 13px;">
                   <div style="display: flex; flex-direction: row">
                     <div class="col-md-6">
+                      <li>Total Mora</li>
                       <li>SubTotal</li>
                       <li>Descuento</li>
                       <li>Total</li>
                       <li>Monto Recibido</li>
+                      <li>Total Pagado</li>
                       <li>Saldo Pendiente</li>
                       <li>Cambio</li>
                     </div>
                     <div class="col-md-6">
                       <ul style="list-style: none;">
+                      <li>RD$ ${
+                        hasDecimal(object.totalMora)
+                          ? object.totalMora
+                          : object.totalMora + ".00"
+                      }</li>
                       <li>RD$ ${
                         hasDecimal(object.subTotal)
                           ? object.subTotal
@@ -596,6 +614,11 @@ function buildReceiptHtml(object) {
                         hasDecimal(object.receivedAmount)
                           ? object.receivedAmount
                           : object.receivedAmount + ".00"
+                      }</li>
+                      <li>RD$ ${
+                        hasDecimal(object.totalPayment)
+                          ? object.totalPayment
+                          : object.totalPayment + ".00"
                       }</li>
                       <li>RD$ ${
                         hasDecimal(object.pendingAmount)
