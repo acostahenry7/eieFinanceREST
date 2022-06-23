@@ -178,7 +178,7 @@ controller.createPayment = async (req, res) => {
                     if (parseInt(req.body.amortization.length) == counter) {
                       //Crea recibo del pago
                       Receipt.create({
-                        html: nextLoid[0].current_id.toString(),
+                        html: null,
                         receipt_number: receiptNumber,
                         comment: null,
                         payment_id: paymentDetail.dataValues.payment_id,
