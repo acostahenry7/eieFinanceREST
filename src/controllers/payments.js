@@ -573,10 +573,10 @@ function buildReceiptHtml(object) {
               ${generateTrasactionsTemplate(object)}
               </div>
               <div class="row mt-4">
-                <div class="col-md-2">
+                <div class="col-md-1">
 
                 </div>
-                <div class="col-md-10" style="list-style: none; font-size: 13px;">
+                <div class="col-md-11" style="list-style: none; font-size: 13px;">
                   <div style="display: flex; flex-direction: row">
                     <div class="col-md-6">
                       <li>Total Mora</li>
