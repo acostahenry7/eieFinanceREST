@@ -92,13 +92,9 @@ controller.createPayment = async (req, res) => {
   var counter = 1;
   const receiptNumber = generateReceiptNumber();
 
-  const [reference, meta] = await db.sequelize.query(
-    `select cast(max(reference) as int) + 1 as reference from payment`
-  );
-
-  const [nextLoid] = await db.sequelize.query(
-    `select max(html::int) + 1 as current_id from receipt`
-  );
+  // const [reference, meta] = await db.sequelize.query(
+  //   `select cast(max(reference) as int) + 1 as reference from payment`
+  // );
 
   const [currentLoanId] = await db.sequelize.query(
     `select loan_number_id as loan_number from loan where loan_id = '${req.body.payment.loanId}'`
@@ -301,7 +297,7 @@ controller.createPayment = async (req, res) => {
                             await db.sequelize.query(
                               `update receipt set app_html='${html}' where receipt_id = '${receipt.dataValues.receipt_id}'`
                             );
-                            console.log(nextLoid);
+
                             //await splitAndUpdateLOB(html, 2044, db);
 
                             //console.log(data);
