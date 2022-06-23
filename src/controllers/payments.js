@@ -487,9 +487,7 @@ function buildReceiptHtml(object) {
     <div class="container box">
       <div class="card shadow border-0 r_container">
         <div class="r_header">
-          <image src="${
-            object.logo
-          }" alt="Logo", width="300px", height="200px"/>
+          <image src="${object.logo}" alt="Logo", width="100%", height="200px"/>
         </div>
         <div class="r_body">
           <div class="r_body_info">
