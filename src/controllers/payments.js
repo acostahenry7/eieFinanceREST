@@ -108,6 +108,12 @@ controller.createPayment = async (req, res) => {
     `select image_url from outlet where outlet_id = '${req.body.payment.outletId}'`
   );
 
+  const [sectionName] = await db.sequelize.query(
+    `select name 
+    from section
+    where section_id=(select section_id from loan_payment_address where loan_id ='${req.body.payment.loanId}')`
+  );
+
   var receiptPaymentId = "";
 
   Payment.create({
@@ -211,6 +217,7 @@ controller.createPayment = async (req, res) => {
                           console.log("CURRENT LOAN ID", currentLoanId);
                           const receiptHtmlObject = {
                             receiptNumber: receiptNumber,
+                            section: sectionName[0].name,
                             customer:
                               currentCustomer[0].first_name +
                               " " +
