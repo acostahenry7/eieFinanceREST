@@ -337,8 +337,8 @@ controller.createPayment = async (req, res) => {
                                   results.loanDetails = {
                                     section:
                                       zone[0].name +
-                                      " " +
-                                      section.dataValues.name,
+                                      " - " +
+                                      sectionName[0].name,
                                     // section.dataValues.name +
                                     // " " +
 
