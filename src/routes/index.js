@@ -328,48 +328,61 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
   });
 
   router.post("/receipt/amortization", (req, res) => {
-    ReceiptTransaction.findAll({
-      attributes: [
-        "quota_number",
-        [
-          db.sequelize.cast(db.sequelize.col("payment_date"), "date"),
-          "payment_date",
-        ],
-        "amount",
-        "mora",
-        "discount_interest",
-        "discount_mora",
-        "discount",
-        "total_paid",
-        "cash_back",
-      ],
+    Receipt.findOne({
       where: {
         receipt_id: req.body.receiptId,
       },
     })
-      .then((amortizations) => {
-        var transactions = [];
-
-        amortizations.map((amortization) => {
-          transactions.push({
-            quota_number: amortization.dataValues.quota_number,
-            date: amortization.dataValues.payment_date,
-            fixedAmount: amortization.dataValues.amount,
-            mora: amortization.dataValues.mora,
-            totalPaid: amortization.dataValues.total_paid,
-            discountInterest: amortization.dataValues.discount_interest,
-            discountMora: amortization.dataValues.discount_mora,
-            discount: amortization.dataValues.discount,
-            cashBack: amortization.dataValues.cash_back,
-          });
-        });
-
-        console.log(transactions);
-        res.send(transactions);
+      .then((receipt) => {
+        console.log(receipt);
+        res.send(receipt);
       })
       .catch((err) => {
         console.log(err);
       });
+
+    // ReceiptTransaction.findAll({
+    //   attributes: [
+    //     "quota_number",
+    //     [
+    //       db.sequelize.cast(db.sequelize.col("payment_date"), "date"),
+    //       "payment_date",
+    //     ],
+    //     "amount",
+    //     "mora",
+    //     "discount_interest",
+    //     "discount_mora",
+    //     "discount",
+    //     "total_paid",
+    //     "cash_back",
+    //   ],
+    //   where: {
+    //     receipt_id: req.body.receiptId,
+    //   },
+    // })
+    //   .then((amortizations) => {
+    //     var transactions = [];
+
+    //     amortizations.map((amortization) => {
+    //       transactions.push({
+    //         quota_number: amortization.dataValues.quota_number,
+    //         date: amortization.dataValues.payment_date,
+    //         fixedAmount: amortization.dataValues.amount,
+    //         mora: amortization.dataValues.mora,
+    //         totalPaid: amortization.dataValues.total_paid,
+    //         discountInterest: amortization.dataValues.discount_interest,
+    //         discountMora: amortization.dataValues.discount_mora,
+    //         discount: amortization.dataValues.discount,
+    //         cashBack: amortization.dataValues.cash_back,
+    //       });
+    //     });
+
+    //     console.log(transactions);
+    //     res.send(transactions);
+    //   })
+    //   .catch((err) => {
+    //     console.log(err);
+    //   });
   });
 
   //Visits
