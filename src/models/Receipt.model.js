@@ -20,6 +20,9 @@ module.exports = (sequelize, Sequelize) => {
       payment_id: {
         type: Sequelize.STRING,
       },
+      app_html: {
+        type: Sequelize.TEXT,
+      },
     },
     {
       schema: "public",
