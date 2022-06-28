@@ -488,7 +488,7 @@ function buildReceiptHtml(object) {
   </head>
   <body>
     <div class="container box">
-      <div class="card shadow border-0 r_container">
+      <div class="card border-0 r_container">
         <div class="r_header">
           <image src="${object.logo}" alt="Logo", width="100%", height="200px"/>
         </div>
@@ -641,7 +641,7 @@ function buildReceiptHtml(object) {
         </div>
         <div class="r_footer mb-3">
           <h6 class="text-center mt-4" style="font-size: 11px; font-weight: bold">
-            Nota: No somos responsables de dinero entregado sin recibo.
+            Nota: Este recibo no es válido sin la firma y sello del cajero.
           </h6>
           <h5 class="text-center mt-1" style="font-size: 14px; font-weight: bold">--- COPIA DE RECIBO ---</h5>
         </div>
