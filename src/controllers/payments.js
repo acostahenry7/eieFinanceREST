@@ -339,13 +339,14 @@ controller.createPayment = async (req, res) => {
                                       zone[0].name +
                                       " - " +
                                       sectionName[0].name,
+                                    pay: currentTotalPaid,
                                     // section.dataValues.name +
                                     // " " +
 
                                     //zone: zone[0].name,
                                   };
 
-                                  console.log(results);
+                                  console.log("HI", results);
                                   res.send(results);
                                 });
                               });
