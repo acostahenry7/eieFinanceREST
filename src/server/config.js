@@ -25,12 +25,18 @@ module.exports = (app) => {
   const storage = multer.diskStorage({
     destination(req, res, cb) {
       console.log(req.body);
-      const route = path.join(__dirname, `../assets/profile`);
+      const route = path.join(
+        __dirname,
+        `../assets/profile/${req.body.fileName.split("_")[0]}`
+      );
+      fs.rmSync(route, { recursive: true, force: true });
       fs.mkdirSync(route, { recursive: true });
       cb(null, route);
     },
+
     filename(req, file, cb) {
       const filename = `${req.body.fileName}`;
+      //fs.unlinkSync(path.join(__dirname, `../assets/profile/${req.body.fileName.split('_')[0]}`))
       cb(null, filename);
     },
   });
