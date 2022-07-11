@@ -9,6 +9,7 @@ const collectorController = require("../controllers/collectors");
 const qrController = require("../controllers/qr");
 const paymentController = require("../controllers/payments");
 const imageController = require("../controllers/camera");
+const receiptController = require("../controllers/receipt");
 const multer = require("multer");
 
 const db = require("../models/index");
@@ -58,43 +59,43 @@ module.exports = (app, storage) => {
     });
   });
 
-  app.post("/api/upload/receipt", async (req, res) => {
-    // var filePath = path.join(__dirname, "../assets/res/receipts/");
-    // var fileName = "temp_receipt.html";
-    // var stream = fs.createWriteStream(filePath + fileName);
+  // app.post("/api/upload/receipt", async (req, res) => {
+  //   // var filePath = path.join(__dirname, "../assets/res/receipts/");
+  //   // var fileName = "temp_receipt.html";
+  //   // var stream = fs.createWriteStream(filePath + fileName);
 
-    // stream.on("open", async () => {
-    var html = buildReceiptHtml(req.body);
-    console.log("String quantity amount", html.length);
-    const test = splitStrByLength(html, 2048);
-    //console.log(test);
+  //   // stream.on("open", async () => {
+  //   var html = buildReceiptHtml(req.body);
+  //   console.log("String quantity amount", html.length);
+  //   const test = splitStrByLength(html, 2048);
+  //   //console.log(test);
 
-    //stream.end(html);
-    //console.log(html);
+  //   //stream.end(html);
+  //   //console.log(html);
 
-    // const [nextLoid] = await db.sequelize.query(
-    //   `select max(loid::int) as current_id from pg_largeobject `
-    // );
+  //   // const [nextLoid] = await db.sequelize.query(
+  //   //   `select max(loid::int) as current_id from pg_largeobject `
+  //   // );
 
-    // console.log(nextLoid);
+  //   // console.log(nextLoid);
 
-    // const [data, meta] = await db.sequelize.query(
-    //   `update pg_largeobject
-    //   set data=decode('${html}', 'escape')
-    //   where loid::int = ${nextLoid[0].current_id}`
-    // );
+  //   // const [data, meta] = await db.sequelize.query(
+  //   //   `update pg_largeobject
+  //   //   set data=decode('${html}', 'escape')
+  //   //   where loid::int = ${nextLoid[0].current_id}`
+  //   // );
 
-    //console.log(data);
+  //   //console.log(data);
 
-    // res.send(
-    //   "File Created on " +
-    //     "http://localhost:3000/assets/res/receipts/" +
-    //     fileName
-    // );
-    //});
+  //   // res.send(
+  //   //   "File Created on " +
+  //   //     "http://localhost:3000/assets/res/receipts/" +
+  //   //     fileName
+  //   // );
+  //   //});
 
-    res.send(test);
-  });
+  //   res.send(test);
+  // });
 
   //Login
   router.post("/login", authController.login);
@@ -190,10 +191,14 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
 		join section s on (lpa.section_id = s.section_id)
         where payment_router_id = (select payment_router_id
         from payment_router
-        where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')
-        and created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${req.params.employeeId}')))
+        where zone_id in (select zone_id from employee_zone where employee_id = '${
+          req.params.employeeId
+        }')
+        and created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${
+          req.params.employeeId
+        }')))
         order by position
-        limit ${user.dataValues.router_restriction}`;
+        limit ${user?.dataValues.router_restriction || 100}`;
 
       try {
         const [data, meta] = await db.sequelize.query(query);
@@ -395,6 +400,8 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
         console.log(err);
       });
   });
+
+  router.post("/receipt/zpl", receiptController.updateReceiptZPL);
 
   //Visits
   router.post("/visits", async (req, res) => {

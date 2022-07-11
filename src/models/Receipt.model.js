@@ -23,6 +23,9 @@ module.exports = (sequelize, Sequelize) => {
       app_html: {
         type: Sequelize.TEXT,
       },
+      app_zpl: {
+        type: Sequelize.TEXT,
+      },
     },
     {
       schema: "public",
