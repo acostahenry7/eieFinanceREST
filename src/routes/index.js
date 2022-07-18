@@ -335,66 +335,18 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
   router.post("/receipt/amortization", async (req, res) => {
     const results = {};
 
-    const [data] = await db.sequelize
-      .query(`select (sum(amount_of_fee ) + sum(mora) - sum(discount)) - sum(total_paid) as pending_amount
-    from amortization 
-    where loan_id = (select loan_id from payment where payment_id = (select payment_id from receipt where receipt_id='${req.body.receiptId}'))`);
-
-    ReceiptTransaction.findAll({
-      attributes: [
-        "quota_number",
-        [
-          db.sequelize.cast(db.sequelize.col("payment_date"), "date"),
-          "payment_date",
-        ],
-        "amount",
-        "mora",
-        "discount_interest",
-        "discount_mora",
-        "discount",
-        "total_paid",
-        "cash_back",
-      ],
+    Receipt.findOne({
       where: {
         receipt_id: req.body.receiptId,
       },
     })
-      .then((amortizations) => {
-        var transactions = [];
+      .then((receipt) => {
+        console.log(receipt);
 
-        amortizations.map((amortization) => {
-          transactions.push({
-            quota_number: amortization.dataValues.quota_number,
-            date: amortization.dataValues.payment_date,
-            fixedAmount: amortization.dataValues.amount,
-            mora: amortization.dataValues.mora,
-            totalPaid: amortization.dataValues.total_paid,
-            discountInterest: amortization.dataValues.discount_interest,
-            discountMora: amortization.dataValues.discount_mora,
-            discount: amortization.dataValues.discount,
-            cashBack: amortization.dataValues.cash_back,
-            pendingAmount: data[0].pending_amount,
-          });
-        });
+        //results.transactions = [...transactions];
+        results.receipt = receipt;
 
-        console.log(transactions);
-
-        Receipt.findOne({
-          where: {
-            receipt_id: req.body.receiptId,
-          },
-        })
-          .then((receipt) => {
-            console.log(receipt);
-
-            results.transactions = [...transactions];
-            results.receipt = receipt;
-
-            res.send(results);
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+        res.send(results);
       })
       .catch((err) => {
         console.log(err);
