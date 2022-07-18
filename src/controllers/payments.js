@@ -61,15 +61,15 @@ controller.getPaymentsBySearchkey = async (req, res) => {
       loanNumbers.push(item.loan_number_id);
     });
 
-    const [quotas, metaQuota] = await db.sequelize.query(
-      `select amortization_id, l.loan_number_id, ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, 
-      mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount
-                    from amortization a
-                    join loan l on (a.loan_id = l.loan_id)
-                    where l.loan_number_id in (${loanNumbers.join()})
-                    and paid='false'
-                    order by a.loan_id, quota_number`
-    );
+    const [quotas, metaQuota] = await db.sequelize
+      .query(`select amortization_id, l.loan_number_id,  ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, 
+              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount
+              from amortization a
+              left join loan l on (a.loan_id = l.loan_id)
+              where l.loan_number_id in (${loanNumbers.join()} )
+              and a.outlet_id = l.outlet_id 
+              and a.paid='false'
+              order by a.loan_id, quota_number`);
 
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;

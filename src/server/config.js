@@ -9,7 +9,7 @@ const fs = require("fs");
 
 module.exports = (app) => {
   //Listenin Port
-  app.set("port", process.env.PORT || 3000);
+  app.set("port", process.env.PORT || 3001);
 
   //Middlewares
   app.use(session({ secret: "eiesecret" }));
