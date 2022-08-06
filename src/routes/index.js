@@ -205,7 +205,12 @@ c.first_name || ' ' || c.last_name as name, c.street as location, s.name as sect
         let arr = [];
         arr = _.groupBy(data, (item) => item.section);
         console.log(arr);
-        res.send(arr);
+        let result = {
+          data,
+          filteredData: arr,
+        };
+
+        res.send(result);
       } catch (error) {
         console.log(error);
       }
