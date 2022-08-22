@@ -28,12 +28,12 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 
     console.log("Employee ID", req.params.employeeId);
     let query = "";
-    if (req.params.employeeId == '0') {
+    if (req.params.employeeId == "0") {
       query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code, c.image_url
                     FROM loan_application la
                     JOIN customer c on (la.customer_id = c.customer_id)`;
     } else {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, street, loan_situation, c.image_url
+      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, lp.street, lp.street2, loan_situation, c.image_url
                     FROM loan_application la
                     JOIN customer c on (c.customer_id = la.customer_id)
                     join loan l on (la.loan_application_id = l.loan_application_id)
@@ -45,47 +45,43 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                                                               where employee_id='${req.params.employeeId}'))	
                     and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')`;
     }
-    
+
     try {
       const [data, meta] = await db.sequelize.query(query);
 
-      
-    const results = {};
+      const results = {};
 
-    if (endIndex < data.length) {
-      var nextOffset = offset + 1;
-      results.next = `http://10.1.102.106:3000/customers/main/${req.params.employeeId}?limit=${limit}&offset=${nextOffset}`;
-    }
+      if (endIndex < data.length) {
+        var nextOffset = offset + 1;
+        results.next = `http://10.1.102.106:3000/customers/main/${req.params.employeeId}?limit=${limit}&offset=${nextOffset}`;
+      }
 
-    if (startIndex > 0) {
-      results.previous = {
-        offset: offset - 1,
-        limit: limit,
-      };
-    }
+      if (startIndex > 0) {
+        results.previous = {
+          offset: offset - 1,
+          limit: limit,
+        };
+      }
 
-    results.customers = data.slice(startIndex, endIndex);
+      results.customers = data.slice(startIndex, endIndex);
 
-    results.loans = [];
+      results.loans = [];
 
-    data.find((item, index) => {
-      console.log(data[index]);
-      item.loan_situation == "ARREARS" ? results.loans.push(data[index]) : "";
-    });
+      data.find((item, index) => {
+        console.log(data[index]);
+        item.loan_situation == "ARREARS" ? results.loans.push(data[index]) : "";
+      });
 
-    key = "customer_id";
+      key = "customer_id";
 
-    results.customers = [
-      ...new Map(results.customers.map((item) => [item[key], item])).values(),
-    ];
+      results.customers = [
+        ...new Map(results.customers.map((item) => [item[key], item])).values(),
+      ];
 
-    res.send(results);
-
+      res.send(results);
     } catch (error) {
       console.log("Admin customers", error);
     }
-   
-
   }
 };
 
