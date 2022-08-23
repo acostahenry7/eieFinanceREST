@@ -182,7 +182,7 @@ module.exports = (app, storage) => {
       console.log(user);
       let query = "";
       query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, 
-c.first_name || ' ' || c.last_name as name, lpa.street || lpa.street2 as location, s.name as section, s.section_id
+c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as location, s.name as section, s.section_id
         from payment_router_detail prd
         inner join loan_payment_address lpa on (prd.loan_payment_address_id = lpa.loan_payment_address_id)
         inner join loan l on (lpa.loan_id = l.loan_id)
