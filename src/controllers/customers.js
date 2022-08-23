@@ -33,8 +33,9 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                     FROM loan_application la
                     JOIN customer c on (la.customer_id = c.customer_id)`;
     } else {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, lp.street, lp.street2, loan_situation, c.image_url
+      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, lp.street, lp.street2, loan_situation, c.image_url, lb.name as business
                     FROM loan_application la
+                    LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
                     JOIN customer c on (c.customer_id = la.customer_id)
                     join loan l on (la.loan_application_id = l.loan_application_id)
                     join loan_payment_address lp on (lp.loan_id = l.loan_id)
