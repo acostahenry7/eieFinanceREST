@@ -189,12 +189,12 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
         inner join loan_application la on ( l.loan_application_id = la.loan_application_id )
         inner join customer c on ( la.customer_id = c.customer_id)
 		join section s on (lpa.section_id = s.section_id)
-        where payment_router_id = (select payment_router_id
+        where payment_router_id in (select payment_router_id
         from payment_router
         where zone_id in (select zone_id from employee_zone where employee_id = '${
           req.params.employeeId
         }')
-        and created_date = (select max(created_date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${
+        and created_date::date = (select max(created_date::date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${
           req.params.employeeId
         }')))
         order by position
