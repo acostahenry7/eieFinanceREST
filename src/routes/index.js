@@ -169,6 +169,11 @@ module.exports = (app, storage) => {
 
   router.post("/payment/create", paymentController.createPayment);
 
+  router.post(
+    "/payment/routerdetail/create",
+    paymentController.createPaymentRouterDetail
+  );
+
   //Payment Router
   router.get("/paymentroute/:employeeId", async (req, res) => {
     console.log(req.params.employeeId);

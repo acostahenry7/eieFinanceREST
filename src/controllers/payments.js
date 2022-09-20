@@ -376,6 +376,12 @@ controller.createPayment = async (req, res) => {
     });
 };
 
+controller.createPaymentRouterDetail = async (req, res) => {
+  console.log(req.body);
+
+  res.send("Done!");
+};
+
 module.exports = controller;
 
 function getPaymentTotal(amortization) {
