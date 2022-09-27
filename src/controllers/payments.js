@@ -96,9 +96,9 @@ controller.createPayment = async (req, res) => {
     `select cast(max(reference) as int) + 1 as reference from payment`
   );
 
-  const [maxQuota] = await db.sequelize.query(
-    `select max(quota) as quota from amortization where loan_id = 'req.body.payment.loanId'`
-  );
+  // const [maxQuota] = await db.sequelize.query(
+  //   `select max(quota) as quota from amortization where loan_id = 'req.body.payment.loanId'`
+  // );
 
   const [currentLoanId] = await db.sequelize.query(
     `select loan_number_id as loan_number from loan where loan_id = '${req.body.payment.loanId}'`
@@ -148,21 +148,21 @@ controller.createPayment = async (req, res) => {
           where: { amortization_id: quota.quotaId },
         })
           .then((totalPaid) => {
-            if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
-              console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-              // Loan.update(
-              //   {
-              //     status_type: "PAID",
-              //   },
-              //   {
-              //     where: {
-              //       loan_id: req.body.payment.loanId,
-              //     },
-              //   }
-              // ).then(() => {
-              //   console.log("hi");
-              // });
-            }
+            // if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
+            // console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            // Loan.update(
+            //   {
+            //     status_type: "PAID",
+            //   },
+            //   {
+            //     where: {
+            //       loan_id: req.body.payment.loanId,
+            //     },
+            //   }
+            // ).then(() => {
+            //   console.log("hi");
+            // });
+            //}
             Amortization.update(
               {
                 paid: quota.paid,
