@@ -150,18 +150,18 @@ controller.createPayment = async (req, res) => {
           .then((totalPaid) => {
             if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
               console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-              Loan.update(
-                {
-                  status_type: "PAID",
-                },
-                {
-                  where: {
-                    loan_id: req.body.payment.loanId,
-                  },
-                }
-              ).then(() => {
-                console.log("hi");
-              });
+              // Loan.update(
+              //   {
+              //     status_type: "PAID",
+              //   },
+              //   {
+              //     where: {
+              //       loan_id: req.body.payment.loanId,
+              //     },
+              //   }
+              // ).then(() => {
+              //   console.log("hi");
+              // });
             }
             Amortization.update(
               {
