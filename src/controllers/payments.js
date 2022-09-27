@@ -10,6 +10,7 @@ const LoanPaymentAddress = db.loanPaymentAddress;
 const Section = db.section;
 const Receipt = db.receipt;
 const ReceiptTransaction = db.receiptTransaction;
+const PaymentRouterDetail = db.paymentRouterDetail;
 const fs = require("fs");
 const path = require("path");
 
@@ -378,6 +379,49 @@ controller.createPayment = async (req, res) => {
 
 controller.createPaymentRouterDetail = async (req, res) => {
   console.log(req.body);
+
+  const [paymentRouterId] = await db.sequelize.query(
+    `  select payment_router_id
+    from payment_router
+    where zone_id in (select zone_id from employee_zone where employee_id = '${req.body.employee.employee_id}')
+    and created_date::date = (select max(created_date::date) 
+              from payment_router 
+              where zone_id in (select zone_id from employee_zone where employee_id = '${req.body.employee.employee_id}'))
+  limit 1
+    `
+  );
+
+  const [position] = await db.sequelize.query(
+    `select max(position) as position
+     from payment_router_detail
+     where payment_router_id = '${paymentRouterId[0].payment_router_id}'
+    `
+  );
+
+  let currentPosition;
+  position.position == null
+    ? (currentPosition = 0)
+    : (currentPosition = parseInt(position.position));
+
+  let bulkItems = [];
+
+  req.body.customers.map((item) => {
+    bulkItems.push({
+      status_type: item.status_type,
+      payment_router_id: paymentRouterId[0].payment_router_id,
+      loan_payment_address_id: item.loan_payment_address_id,
+      position: currentPosition,
+      customer_id: item.customer_id,
+      loan_id: item.loan_id,
+    });
+  });
+
+  console.log(bulkItems);
+
+  console.log(paymentRouterId, currentPosition);
+  //  PaymentRouterDetail.bulkCreate(bulkItems).then(data => {
+
+  //  })
 
   res.send("Done!");
 };
