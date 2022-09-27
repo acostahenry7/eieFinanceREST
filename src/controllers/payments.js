@@ -148,7 +148,7 @@ controller.createPayment = async (req, res) => {
           where: { amortization_id: quota.quotaId },
         })
           .then((totalPaid) => {
-            if (quota.quotaId == maxQuota[0].quota) {
+            if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
               console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
               Loan.update(
                 {
