@@ -198,7 +198,7 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
         from payment_router
         where zone_id in (select zone_id from employee_zone where employee_id = '${
           req.params.employeeId
-        }')
+        }' and status_type='ENABLED')
         and created_date::date = (select max(created_date::date) from payment_router where zone_id in (select zone_id from employee_zone where employee_id = '${
           req.params.employeeId
         }')))
