@@ -63,7 +63,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 
     const [quotas, metaQuota] = await db.sequelize
       .query(`select amortization_id, l.loan_number_id,  ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, 
-              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount
+              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount, a.status_type
               from amortization a
               left join loan l on (a.loan_id = l.loan_id)
               where l.loan_number_id in (${loanNumbers.join()} )
@@ -148,10 +148,8 @@ controller.createPayment = async (req, res) => {
           where: { amortization_id: quota.quotaId },
         })
           .then((totalPaid) => {
-            if (
-              parseInt(quota.quota_number) == parseInt(maxQuota[0].quota) &&
-              quota.paid == true
-            ) {
+            if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
+              console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
               Loan.update(
                 {
                   status_type: "PAID",
