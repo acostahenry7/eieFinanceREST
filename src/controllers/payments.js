@@ -62,8 +62,8 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select amortization_id, l.loan_number_id,  ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, 
-              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount, a.status_type
+      .query(`select amortization_id, l.loan_number_id,  ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, a.created_date as date, 
+              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount, a.status_type, a.total_paid as current_paid
               from amortization a
               left join loan l on (a.loan_id = l.loan_id)
               where l.loan_number_id in (${loanNumbers.join()} )
@@ -84,11 +84,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 
 controller.createPayment = async (req, res) => {
   const results = {};
-  var paidLoan = false;
-  var totalPaid = getPaymentTotal(req.body.amortization);
-  var currentTotalPaid = totalPaid;
 
-  console.log("Total Paid", totalPaid);
   var counter = 1;
   const receiptNumber = generateReceiptNumber();
 
@@ -121,7 +117,7 @@ controller.createPayment = async (req, res) => {
   var receiptPaymentId = "";
 
   Payment.create({
-    pay: totalPaid,
+    pay: req.body.totalPaid,
     loan_id: req.body.payment.loanId,
     ncf: req.body.payment.ncf,
     customer_id: req.body.payment.customerId,
@@ -131,12 +127,12 @@ controller.createPayment = async (req, res) => {
     reference: reference[0].reference,
     employee_id: req.body.payment.employeeId,
     outlet_id: req.body.payment.outletId,
-    comment: req.body.payment.comment,
+    comment: req.body.payment.commentary,
     register_id: req.body.payment.registerId,
     reference_bank: null,
     bank: null,
     pay_off_loan_discount: 0,
-    pay_off_loan: req.body.payment.payOffLoan,
+    pay_off_loan: req.body.payment.liquidateLoan,
     capital_subscription: false,
     status_type: "ENABLED",
     payment_origin: "APP",
@@ -148,8 +144,7 @@ controller.createPayment = async (req, res) => {
           where: { amortization_id: quota.quotaId },
         })
           .then((totalPaid) => {
-            if (parseInt(quota.quota_number) == parseInt(maxQuota[0].quota)) {
-              console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            if (parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota)) {
               Loan.update(
                 {
                   status_type: "PAID",
@@ -165,10 +160,9 @@ controller.createPayment = async (req, res) => {
             }
             Amortization.update(
               {
-                paid: quota.paid,
+                paid: quota.isPaid,
                 status_type: quota.statusType,
-                total_paid:
-                  quota.totalPaid + parseInt(totalPaid.dataValues.total_paid),
+                total_paid: quota.totalPaid + parseFloat(quota.currentPaid),
                 last_modified_by: req.body.payment.lastModifiedBy,
               },
               {
@@ -209,19 +203,12 @@ controller.createPayment = async (req, res) => {
                           var bulkTransactions = [];
 
                           req.body.amortization.map((item) => {
+                            console.log("BULK", item);
                             bulkTransactions.push({
                               receipt_id: receipt.dataValues.receipt_id,
-                              quota_number: item.quota_number,
-                              payment_date: (() => {
-                                let date = new Date(
-                                  item.date.split("/").reverse().join("-")
-                                );
-                                // console.log(
-                                //   item.date.split("/").reverse().join("-")
-                                // );
-                                return date;
-                              })(),
-                              amount: item.amount - item.mora,
+                              quota_number: item.quotaNumber,
+                              payment_date: item.date,
+                              amount: item.amount,
                               mora: item.mora,
                               discount:
                                 parseFloat(item.discountInterest) +
@@ -229,7 +216,7 @@ controller.createPayment = async (req, res) => {
                               total_paid: item.totalPaid,
                               discount_interest: item.discountInterest,
                               discount_mora: item.discountMora,
-                              cashback: req.body.payment.cashBack,
+                              cashback: req.body.payment.change,
                             });
                           });
 
@@ -241,7 +228,7 @@ controller.createPayment = async (req, res) => {
                               currentCustomer[0].first_name +
                               " " +
                               currentCustomer[0].last_name,
-                            loanNumber: currentLoanId[0].loan_number,
+                            loanNumber: req.body.payment.loanNumber,
                             logo: imgUrl[0].image_url,
                             paymentType: req.body.payment.paymentType,
                             createdBy: req.body.payment.createdBy,
@@ -299,11 +286,9 @@ controller.createPayment = async (req, res) => {
                               return fullDate.toString();
                             })(),
                             totalMora: req.body.payment.totalMora,
-                            pendingAmount:
-                              parseFloat(req.body.payment.pendingAmount) -
-                              currentTotalPaid,
-                            receivedAmount: req.body.payment.receivedAmount,
-                            cashBack: bulkTransactions[0].cashback,
+                            pendingAmount: req.body.payment.pendingAmount,
+                            receivedAmount: req.body.payment.amount,
+                            cashBack: req.body.payment.change,
                             amortization: bulkTransactions,
                           };
 
@@ -358,7 +343,7 @@ controller.createPayment = async (req, res) => {
                                       zone[0].name +
                                       " - " +
                                       sectionName[0].name,
-                                    pay: currentTotalPaid,
+                                    pay: req.body.totalPaid,
                                     // section.dataValues.name +
                                     // " " +
 
@@ -696,7 +681,7 @@ function buildReceiptHtml(object) {
                           : object.pendingAmount + ".00"
                       }</li>
                       <li>RD$ ${
-                        hasDecimal(object.cashBack)
+                        hasDecimal(object.change)
                           ? object.cashBack
                           : object.cashBack + ".00"
                       }</li>
@@ -726,7 +711,7 @@ function generateTrasactionsTemplate(object) {
 
   let transactionTemplate = `<div></div>`;
   object.amortization?.map((item) => {
-    console.log("AMORTIZATION TO RECEIPT", parseFloat(item.mora));
+    console.log("AMORTIZATION TO RECEIPT", item);
     arr.push(`  
             <ul style="list-style: none; padding: 0">
               <li>
@@ -736,7 +721,7 @@ function generateTrasactionsTemplate(object) {
                   </div>
                   <div style="width: 30%">
                     <h6 class="title">${item.payment_date
-                      .toISOString()
+                      //.toISOString()
                       .split("T")[0]
                       .split("-")
                       .reverse()
@@ -776,7 +761,7 @@ function generateTrasactionsTemplate(object) {
                 </div>
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Interes ${
-                    hasDecimal(item.discountInterest)
+                    hasDecimal(item.discount_interest)
                       ? item.discount_interest
                       : parseFloat(item.discount_interest) + ".00"
                   }</h5>
