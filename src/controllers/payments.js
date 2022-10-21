@@ -62,9 +62,12 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select amortization_id, l.loan_number_id,  ((amount_of_fee - total_paid) + mora) - discount as current_fee, quota_number, a.created_date as date, 
-              mora, payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount, a.status_type, a.total_paid as current_paid
+      .query(`select a.amortization_id, l.loan_number_id,  round(((amount_of_fee - total_paid) + mora) - a.discount - coalesce(trunc(interest/ad.discount, 2),0)) as current_fee, 
+              quota_number, a.created_date as date, 
+              mora, payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid - coalesce(trunc(interest/ad.discount, 2),0)) as fixed_amount, a.status_type, a.total_paid as current_paid,
+              coalesce(trunc(interest/ad.discount, 2),0) as global_discount
               from amortization a
+              left join amortization_discount ad on (ad.loan_id = a.loan_id)
               left join loan l on (a.loan_id = l.loan_id)
               where l.loan_number_id in (${loanNumbers.join()} )
               and a.outlet_id = l.outlet_id 
@@ -144,7 +147,10 @@ controller.createPayment = async (req, res) => {
           where: { amortization_id: quota.quotaId },
         })
           .then((totalPaid) => {
-            if (parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota)) {
+            if (
+              parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota) &&
+              quota.isPaid == true
+            ) {
               Loan.update(
                 {
                   status_type: "PAID",
@@ -391,44 +397,80 @@ controller.createPaymentRouterDetail = async (req, res) => {
     where zone_id in (select zone_id from employee_zone where employee_id = '${req.body.employee.employee_id}')
     and created_date::date = (select max(created_date::date) 
               from payment_router 
-              where zone_id in (select zone_id from employee_zone where employee_id = '${req.body.employee.employee_id}'))
+              where zone_id in (select zone_id from employee_zone where employee_id = '${req.body.employee.employee_id}' and status_type='ENABLED'))
   limit 1
     `
   );
 
   const [position] = await db.sequelize.query(
-    `select max(position) as position
+    `select max(position) + 1 as position
      from payment_router_detail
      where payment_router_id = '${paymentRouterId[0].payment_router_id}'
     `
   );
 
-  let currentPosition;
-  position.position == null
-    ? (currentPosition = 0)
-    : (currentPosition = parseInt(position.position));
-
-  let bulkItems = [];
-
-  req.body.customers.map((item) => {
-    bulkItems.push({
-      status_type: item.status_type,
+  PaymentRouterDetail.findAll({
+    attributes: ["customer_id"],
+    where: {
       payment_router_id: paymentRouterId[0].payment_router_id,
-      loan_payment_address_id: item.loan_payment_address_id,
-      position: currentPosition,
-      customer_id: item.customer_id,
-      loan_id: item.loan_id,
+    },
+  }).then((data) => {
+    let routedCustomers = [];
+
+    data.map((item) => {
+      routedCustomers.push(item.dataValues.customer_id);
     });
+
+    console.log(routedCustomers);
+
+    let currentPosition;
+    position[0]?.position == null
+      ? (currentPosition = 0)
+      : (currentPosition = parseInt(position[0].position));
+
+    let bulkItems = [];
+
+    req.body.customers.map((item) => {
+      let isRouted = routedCustomers.find(
+        (customerId) => customerId == item.customer_id
+      );
+
+      if (isRouted == null) {
+        bulkItems.push({
+          status_type: item.status_type,
+          payment_router_id: paymentRouterId[0].payment_router_id,
+          loan_payment_address_id: item.loan_payment_address_id,
+          position: currentPosition,
+          customer_id: item.customer_id,
+          loan_id: item.loan_id,
+        });
+
+        console.log(bulkItems);
+
+        currentPosition++;
+      }
+    });
+
+    console.log("BULKITEM", bulkItems);
+
+    if (bulkItems.length > 0) {
+      PaymentRouterDetail.bulkCreate(bulkItems).then((data) => {
+        console.log(data);
+      });
+      res.send({
+        data,
+        message:
+          "Todos los clientes seleccionados, fueron agregados a la ruta exitosamente!",
+        messageTitle: "Listo!",
+      });
+    } else {
+      console.log("Todos los clientes ya existen en la ruta!");
+      res.send({
+        message: "Todos los clientes seleccionados ya existen en la ruta!",
+        messageTitle: "Error",
+      });
+    }
   });
-
-  console.log(bulkItems);
-
-  console.log(paymentRouterId, currentPosition);
-  //  PaymentRouterDetail.bulkCreate(bulkItems).then(data => {
-
-  //  })
-
-  res.send("Done!");
 };
 
 module.exports = controller;
