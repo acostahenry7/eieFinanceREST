@@ -120,7 +120,7 @@ controller.createPayment = async (req, res) => {
   var receiptPaymentId = "";
 
   Payment.create({
-    pay: req.body.totalPaid,
+    pay: req.body.payment.totalPaid,
     loan_id: req.body.payment.loanId,
     ncf: req.body.payment.ncf,
     customer_id: req.body.payment.customerId,
