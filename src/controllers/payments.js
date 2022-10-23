@@ -76,7 +76,8 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 
     const [gDiscount] = await db.sequelize.query(`select discount
     from amortization_discount
-    where loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))`);
+    where loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
+    and status_type = 'CREATED'`);
 
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;
