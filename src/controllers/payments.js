@@ -74,9 +74,14 @@ controller.getPaymentsBySearchkey = async (req, res) => {
               and a.paid='false'
               order by a.loan_id, quota_number`);
 
+    const [gDiscount] = await db.sequelize.query(`select discount
+    from amortization_discount
+    where loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))`);
+
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;
     results.loans = [...loans];
+    results.globalDiscount = parseInt(gDiscount[0].discount);
   } catch (error) {
     console.log(error);
   }
