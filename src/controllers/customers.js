@@ -38,14 +38,15 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                     FROM loan_application la
                     LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
                     JOIN customer c on (c.customer_id = la.customer_id)
-                    join loan l on (la.loan_application_id = l.loan_application_id)
+                    join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
                     join loan_payment_address lp on (lp.loan_id = l.loan_id)
                     where lp.section_id in 	(select cast(section_id as int) 
                                             from zone_neighbor_hood 
                                             where zone_id in (select zone_id
                                                               from employee_zone
                                                               where employee_id='${req.params.employeeId}'))	
-                    and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')`;
+                    and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
+                    order by c.first_name`;
     }
 
     try {
