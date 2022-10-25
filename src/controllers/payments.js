@@ -62,17 +62,15 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select a.amortization_id, l.loan_number_id,  round(((amount_of_fee - total_paid) + mora) - a.discount - coalesce(trunc(interest/ad.discount, 2),0)) as current_fee, 
-              quota_number, a.created_date as date, 
-              mora, payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid - coalesce(trunc(interest/ad.discount, 2),0)) as fixed_amount, a.status_type, a.total_paid as current_paid,
-              coalesce(trunc(interest/ad.discount, 2),0) as global_discount
-              from amortization a
-              left join amortization_discount ad on (ad.loan_id = a.loan_id)
-              left join loan l on (a.loan_id = l.loan_id)
-              where l.loan_number_id in (${loanNumbers.join()} )
-              and a.outlet_id = l.outlet_id 
-              and a.paid='false'
-              order by a.loan_id, quota_number`);
+      .query(`select a.amortization_id, l.loan_number_id,  round(((amount_of_fee - total_paid) + mora) - a.discount) as current_fee, 
+      quota_number, a.created_date as date, 
+      mora, payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid) as fixed_amount, a.status_type, a.total_paid as current_paid
+      from amortization a
+      left join loan l on (a.loan_id = l.loan_id)
+      where l.loan_number_id in (${loanNumbers.join()})
+      and a.outlet_id = l.outlet_id 
+      and a.paid='false'
+      order by a.loan_id, quota_number`);
 
     const [gDiscount] = await db.sequelize.query(`select discount
     from amortization_discount

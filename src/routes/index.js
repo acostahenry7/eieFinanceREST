@@ -151,11 +151,12 @@ module.exports = (app, storage) => {
       attributes: ["register_id"],
       where: {
         status_type: "ENABLED",
+        user_id: req.body.userId,
       },
     }).then((register) => {
       console.log(register.length);
 
-      if (!register.length > 0) {
+      if (register.length == 0) {
         Register.create({
           amount: req.body.amount,
           description: req.body.description,
@@ -174,7 +175,7 @@ module.exports = (app, storage) => {
           });
       } else {
         res.send({
-          err: "Al parecer ocurrió un problema al abrir la caja, contacte al administrador.",
+          err: "Al parecer ya existe una caja abierta para este usuario. Conectando a caja existente...",
         });
       }
     });
