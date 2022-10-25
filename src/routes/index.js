@@ -147,21 +147,37 @@ module.exports = (app, storage) => {
   });
 
   router.post("/register/create", (req, res) => {
-    Register.create({
-      amount: req.body.amount,
-      description: req.body.description,
-      user_id: req.body.userId,
-      outlet_id: req.body.outletId,
-      created_by: req.body.createdBy,
-      last_modified_by: req.body.lastModifiedBy,
-      status_type: "ENABLED",
-    })
-      .then((register) => {
-        res.send(register);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    Register.findAll({
+      attributes: ["register_id"],
+      where: {
+        status_type: "ENABLED",
+      },
+    }).then((register) => {
+      console.log(register.length);
+
+      if (!register.length > 0) {
+        Register.create({
+          amount: req.body.amount,
+          description: req.body.description,
+          user_id: req.body.userId,
+          outlet_id: req.body.outletId,
+          created_by: req.body.createdBy,
+          last_modified_by: req.body.lastModifiedBy,
+          status_type: "ENABLED",
+        })
+          .then((register) => {
+            res.send(register);
+          })
+          .catch((err) => {
+            console.log(err);
+            res.send({ err });
+          });
+      } else {
+        res.send({
+          err: "Al parecer ocurrió un problema al abrir la caja, contacte al administrador.",
+        });
+      }
+    });
   });
 
   //Payments
