@@ -62,9 +62,10 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select a.amortization_id, l.loan_number_id,  round(((amount_of_fee - total_paid) + mora) - a.discount) as current_fee, 
+      .query(`select a.amortization_id, l.loan_number_id, amount_of_fee as quota_amount, ((amount_of_fee - total_paid) + mora) - a.discount as current_fee, 
       quota_number, a.created_date as date, 
-      mora, payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid) as fixed_amount, a.status_type, a.total_paid as current_paid
+      mora , payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid) as fixed_amount, a.status_type, a.total_paid as current_paid, 
+      total_paid_mora
       from amortization a
       left join loan l on (a.loan_id = l.loan_id)
       where l.loan_number_id in (${loanNumbers.join()})
@@ -174,6 +175,8 @@ controller.createPayment = async (req, res) => {
                 status_type: quota.statusType,
                 total_paid: quota.totalPaid + parseFloat(quota.currentPaid),
                 last_modified_by: req.body.payment.lastModifiedBy,
+                mora: quota.mora,
+                total_paid_mora: quota.totalPaidMora,
               },
               {
                 where: {
