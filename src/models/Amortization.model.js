@@ -20,6 +20,9 @@ module.exports = (sequelize, Sequelize) => {
       mora: {
         type: Sequelize.DOUBLE,
       },
+      total_paid_mora: {
+        type: Sequelize.DOUBLE,
+      },
       discount: {
         type: Sequelize.DOUBLE,
       },
