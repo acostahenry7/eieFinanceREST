@@ -40,14 +40,14 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     var customerId = client[0].customer_id;
 
     const [loans, metaLoan] = await db.sequelize.query(
-      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance
+      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance, l.number_of_installments as amount_of_quotas
       from amortization a
       right join loan l on (l.loan_id = a.loan_id)
       join loan_application la on (la.loan_application_id = l.loan_application_id)
       where la.customer_id = '${customerId}'
       and a.outlet_id = l.outlet_id
       and l.status_type != 'PAID'
-      group by l.loan_number_id, l.loan_id`
+      group by l.loan_number_id, l.loan_id, l.number_of_installments`
     );
 
     var currentOuotas = [];
@@ -61,11 +61,12 @@ controller.getPaymentsBySearchkey = async (req, res) => {
       loanNumbers.push(item.loan_number_id);
     });
 
+    //
     const [quotas, metaQuota] = await db.sequelize
       .query(`select a.amortization_id, l.loan_number_id, amount_of_fee as quota_amount, ((amount_of_fee - total_paid) + mora) - a.discount as current_fee, 
       quota_number, a.created_date as date, 
-      mora , payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid) as fixed_amount, a.status_type, a.total_paid as current_paid, 
-      total_paid_mora
+      mora , payment_date, discount_mora, discount_interest, round(amount_of_fee - total_paid) as fixed_amount, a.status_type, a.total_paid as current_paid,
+      total_paid_mora      
       from amortization a
       left join loan l on (a.loan_id = l.loan_id)
       where l.loan_number_id in (${loanNumbers.join()})
@@ -123,6 +124,8 @@ controller.createPayment = async (req, res) => {
   );
 
   var receiptPaymentId = "";
+
+  console.log(req.body.payment);
 
   Payment.create({
     pay: req.body.payment.totalPaid,
@@ -248,9 +251,7 @@ controller.createPayment = async (req, res) => {
                             subTotal: (() => {
                               let result = 0;
                               bulkTransactions.map((item) => {
-                                result +=
-                                  parseFloat(item.amount) +
-                                  parseFloat(item.mora);
+                                result += parseFloat(item.amount);
                               });
 
                               return result;
@@ -265,22 +266,12 @@ controller.createPayment = async (req, res) => {
                             total: (() => {
                               let result = 0;
                               bulkTransactions.map((item) => {
-                                result +=
-                                  parseFloat(item.amount) +
-                                  parseFloat(item.mora) -
-                                  parseFloat(item.discount);
+                                result += parseFloat(item.amount);
                               });
 
                               return result;
                             })(),
-                            totalPayment: (() => {
-                              let result = 0;
-                              bulkTransactions.map((item) => {
-                                result += parseFloat(item.total_paid);
-                              });
-
-                              return result;
-                            })(),
+                            totalPayment: req.body.payment.totalPaid,
                             date: (() => {
                               //Date
                               const date = new Date().getDate();
@@ -300,9 +291,10 @@ controller.createPayment = async (req, res) => {
                             })(),
                             totalMora: req.body.payment.totalMora,
                             pendingAmount: req.body.payment.pendingAmount,
-                            receivedAmount: req.body.payment.amount,
+                            receivedAmount: req.body.payment.receivedAmount,
                             cashBack: req.body.payment.change,
-                            amortization: bulkTransactions,
+                            amortization: req.body.amortization,
+                            quotaAmount: req.body.payment.quotaAmount,
                           };
 
                           var filePath = path.join(
@@ -701,8 +693,8 @@ function buildReceiptHtml(object) {
                       }</li>
                       <li>RD$ ${
                         hasDecimal(object.subTotal)
-                          ? object.subTotal
-                          : object.subTotal + ".00"
+                          ? object.subTotal + object.totalMora
+                          : object.subTotal + object.totalMora + ".00"
                       }</li>
                       <li>RD$ ${
                         hasDecimal(object.discount)
@@ -711,8 +703,11 @@ function buildReceiptHtml(object) {
                       }</li>
                       <li>RD$ ${
                         hasDecimal(object.total)
-                          ? object.total
-                          : object.total + ".00"
+                          ? object.total + object.totalMora - object.discount
+                          : object.total +
+                            object.totalMora -
+                            object.discount +
+                            ".00"
                       }</li>
                       <li>RD$ ${
                         hasDecimal(object.receivedAmount)
@@ -766,10 +761,12 @@ function generateTrasactionsTemplate(object) {
               <li>
                 <div style="display: flex">
                   <div style="width: 16%">
-                    <h6 class="title">${item.quota_number}</h6>
+                    <h6 class="title">${item.quotaNumber}/${
+      object.quotaAmount
+    }</h6>
                   </div>
                   <div style="width: 30%">
-                    <h6 class="title">${item.payment_date
+                    <h6 class="title">${item.date
                       //.toISOString()
                       .split("T")[0]
                       .split("-")
@@ -785,16 +782,17 @@ function generateTrasactionsTemplate(object) {
                   </div>
                   <div style="width: 19%">
                     <h6 class="title">${
-                      hasDecimal(item.mora)
-                        ? item.mora
-                        : parseFloat(item.mora) + ".00"
+                      hasDecimal(item.fixedMora)
+                        ? item.fixedMora
+                        : parseFloat(item.fixedMora) + ".00"
                     }</h6>
                   </div>
                   <div style="width: 15%">
                     <h6 class="title">${
-                      hasDecimal(item.total_paid)
-                        ? item.total_paid
-                        : parseFloat(item.total_paid) + ".00"
+                      hasDecimal(item.totalPaid)
+                        ? item.totaPaid + item.totalPaidMora
+                        : parseFloat(item.totalPaid + item.totalPaidMora) +
+                          ".00"
                     }</h6>
                   </div
                 </div>
@@ -803,16 +801,16 @@ function generateTrasactionsTemplate(object) {
                 <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Mora ${
-                    hasDecimal(item.discount_mora)
-                      ? item.discount_mora
-                      : parseFloat(item.discount_mora) + ".00"
+                    hasDecimal(item.discountMora)
+                      ? item.discountMora
+                      : parseFloat(item.discountMora) + ".00"
                   }</h5>
                 </div>
                 <div style="">
                   <h5 style="font-size: 12px">Desc. Interes ${
-                    hasDecimal(item.discount_interest)
-                      ? item.discount_interest
-                      : parseFloat(item.discount_interest) + ".00"
+                    hasDecimal(item.discountInterest)
+                      ? item.discountInterest
+                      : parseFloat(item.discountInterest) + ".00"
                   }</h5>
                 </div>
                 </div>
