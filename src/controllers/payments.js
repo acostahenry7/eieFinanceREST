@@ -700,49 +700,30 @@ function buildReceiptHtml(object) {
                     </div>
                     <div class="col-md-6">
                       <ul style="list-style: none;">
-                      <li>RD$ ${
-                        hasDecimal(object.totalMora)
-                          ? object.totalMora
-                          : object.totalMora + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.subTotal)
-                          ? object.subTotal + object.totalMora
-                          : object.subTotal + object.totalMora + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.discount)
-                          ? object.discount
-                          : object.discount + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.total)
-                          ? object.total + object.totalMora - object.discount
-                          : object.total +
-                            object.totalMora -
-                            object.discount +
-                            ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.receivedAmount)
-                          ? object.receivedAmount
-                          : object.receivedAmount + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.totalPayment)
-                          ? object.totalPayment
-                          : object.totalPayment + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.pendingAmount)
-                          ? object.pendingAmount
-                          : object.pendingAmount + ".00"
-                      }</li>
-                      <li>RD$ ${
-                        hasDecimal(object.change)
-                          ? object.cashBack
-                          : object.cashBack + ".00"
-                      }</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.totalMora).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.subTotal).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.discount).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.total).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.receivedAmount).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.totalPayment).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.pendingAmount).toFixed(2)
+                      )}</li>
+                      <li>RD$ ${significantFigure(
+                        parseFloat(object.change).toFixed(2)
+                      )}</li>
                       </ul>
                     </div>
                   </div>
@@ -788,44 +769,33 @@ function generateTrasactionsTemplate(object) {
                       .join("/")}</h6>
                   </div>
                   <div style="width: 19%">
-                    <h6 class="title">${
-                      hasDecimal(item.amount)
-                        ? item.amount
-                        : parseFloat(item.amount) + ".00"
-                    }</h6>
+                    <h6 class="title">${significantFigure(
+                      parseFloat(item.amount).toFixed(2)
+                    )}</h6>
                   </div>
                   <div style="width: 19%">
-                    <h6 class="title">${
-                      hasDecimal(item.fixedMora)
-                        ? item.fixedMora
-                        : parseFloat(item.fixedMora) + ".00"
-                    }</h6>
+                    <h6 class="title">${significantFigure(
+                      parseFloat(item.fixedMora).toFixed(2)
+                    )}</h6>
                   </div>
                   <div style="width: 15%">
-                    <h6 class="title">${
-                      hasDecimal(item.totalPaid)
-                        ? item.totaPaid + item.totalPaidMora
-                        : parseFloat(item.totalPaid + item.totalPaidMora) +
-                          ".00"
-                    }</h6>
+                    <h6 class="title">${significantFigure(
+                      parseFloat(item.totalPaid).toFixed(2)
+                    )}</h6>
                   </div
                 </div>
               </li>
               <li>
                 <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
                 <div style="">
-                  <h5 style="font-size: 12px">Desc. Mora ${
-                    hasDecimal(item.discountMora)
-                      ? item.discountMora
-                      : parseFloat(item.discountMora) + ".00"
-                  }</h5>
+                  <h5 style="font-size: 12px">Desc. Mora ${significantFigure(
+                    parseFloat(item.discountMora).toFixed(2)
+                  )}</h5>
                 </div>
                 <div style="">
-                  <h5 style="font-size: 12px">Desc. Interes ${
-                    hasDecimal(item.discountInterest)
-                      ? item.discountInterest
-                      : parseFloat(item.discountInterest) + ".00"
-                  }</h5>
+                  <h5 style="font-size: 12px">Desc. Interes ${significantFigure(
+                    parseFloat(item.discountInterest).toFixed(2)
+                  )}</h5>
                 </div>
                 </div>
               </li>
@@ -870,4 +840,75 @@ function generateTrasactionsTemplate(object) {
 function hasDecimal(num) {
   console.log("has decimal", !!(parseFloat(num) % 1));
   return !!(parseFloat(num) % 1);
+}
+
+function significantFigure(num) {
+  let decimal;
+
+  if (num) {
+    num = num.toString();
+
+    if (num.split(".").length > 0) {
+      console.log("hola");
+      decimal = num.split(".")[1];
+      num = num.split(".")[0];
+    }
+
+    let styledNum = "";
+
+    switch (num.length) {
+      case 4:
+        styledNum = separatorPlace(num, 1);
+        break;
+      case 5:
+        styledNum = separatorPlace(num, 2);
+        break;
+      case 6:
+        styledNum = separatorPlace(num, 3);
+        break;
+      case 7:
+        styledNum = separatorPlace(num, 1, 4);
+        break;
+      case 8:
+        styledNum = separatorPlace(num, 2, 5);
+        break;
+      case 9:
+        styledNum = separatorPlace(num, 3, 6);
+        break;
+      default:
+        styledNum = num;
+        break;
+    }
+
+    console.log("FANCY FUNCTION", styledNum, typeof styledNum);
+
+    if (decimal) {
+      styledNum = styledNum + `.${decimal.toString()}`;
+    } else {
+      styledNum = styledNum + ".00";
+    }
+
+    return styledNum;
+  } else {
+    return 0;
+  }
+}
+
+function separatorPlace(num, fPos, sPos) {
+  let result = "";
+
+  if (num.length <= 6) {
+    for (let i = 0; i < num.length; i++) {
+      i == fPos ? (result += ",") : undefined;
+      result += num.charAt(i);
+    }
+  } else {
+    for (let i = 0; i < num.length; i++) {
+      i == fPos ? (result += ",") : undefined;
+      i == sPos ? (result += ",") : undefined;
+      result += num.charAt(i);
+    }
+  }
+
+  return result;
 }
