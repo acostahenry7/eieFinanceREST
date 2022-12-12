@@ -14,6 +14,7 @@ const ReceiptTransaction = db.receiptTransaction;
 const PaymentRouterDetail = db.paymentRouterDetail;
 const fs = require("fs");
 const path = require("path");
+const { result } = require("lodash");
 
 controller.getPaymentsBySearchkey = async (req, res) => {
   const results = {};
@@ -62,6 +63,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     //
+    console.log(loanNumbers.join(","));
     const [quotas, metaQuota] = await db.sequelize
       .query(`select a.amortization_id, l.loan_number_id, amount_of_fee as quota_amount, ((amount_of_fee - total_paid) + mora) - a.discount as current_fee, 
       quota_number, a.created_date as date, 
@@ -74,15 +76,27 @@ controller.getPaymentsBySearchkey = async (req, res) => {
       and a.paid='false'
       order by a.loan_id, quota_number`);
 
+    const [charges] = await db.sequelize
+      .query(`select l.loan_number_id as loan_number, sum(ch.amount) as amount
+      from loan_charge lch
+      join charge ch on (lch.charge_id = ch.charge_id)
+	  join loan l on (l.loan_id = lch.loan_id)
+      where lch.loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
+	  group by l.loan_number_id`);
+
     const [gDiscount] = await db.sequelize.query(`select discount
     from amortization_discount
     where loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
     and status_type = 'CREATED'`);
 
+    console.log("CHARGES", charges);
+
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;
     results.loans = [...loans];
-    results.globalDiscount = parseInt(gDiscount[0].discount);
+    results.charges = [...charges];
+    //result.charges = charges;
+    results.globalDiscount = parseInt(gDiscount[0]?.discount);
   } catch (error) {
     console.log(error);
   }
