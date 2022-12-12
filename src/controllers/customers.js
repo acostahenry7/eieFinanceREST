@@ -44,7 +44,9 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                                             from zone_neighbor_hood 
                                             where zone_id in (select zone_id
                                                               from employee_zone
-                                                              where employee_id='${req.params.employeeId}'))	
+                                                              where employee_id='${req.params.employeeId}'
+                                                              and status_type = 'ENABLED'
+                                                              ))	
                     and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
                     order by c.first_name`;
     }
