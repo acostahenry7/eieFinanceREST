@@ -12,7 +12,7 @@ controller.login = async (req, res) => {
   console.log(req.body);
 
   if (req.body.version) {
-    if (req.body.version != "1.0") {
+    if (req.body.version != "1.1") {
       results.successfullLogin = false;
       results.error = "MMVERSION";
       res.send(results);
