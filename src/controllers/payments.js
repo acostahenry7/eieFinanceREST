@@ -722,7 +722,7 @@ function buildReceiptHtml(object) {
                         parseFloat(object.pendingAmount).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
-                        parseFloat(object.change).toFixed(2)
+                        parseFloat(object.change || 0).toFixed(2)
                       )}</li>
                       </ul>
                     </div>
