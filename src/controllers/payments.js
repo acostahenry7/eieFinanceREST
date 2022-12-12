@@ -704,13 +704,13 @@ function buildReceiptHtml(object) {
                         parseFloat(object.totalMora).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
-                        parseFloat(object.subTotal).toFixed(2)
+                        parseFloat(object.subTotal)
                       )}</li>
                       <li>RD$ ${significantFigure(
                         parseFloat(object.discount).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
-                        parseFloat(object.total).toFixed(2)
+                        parseFloat(object.total)
                       )}</li>
                       <li>RD$ ${significantFigure(
                         parseFloat(object.receivedAmount).toFixed(2)
