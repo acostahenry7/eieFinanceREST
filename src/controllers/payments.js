@@ -704,13 +704,20 @@ function buildReceiptHtml(object) {
                         parseFloat(object.totalMora).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
-                        parseFloat(object.subTotal).toFixed(2)
+                        (
+                          parseFloat(object.subTotal) +
+                          parseFloat(object.totalMora)
+                        ).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
                         parseFloat(object.discount).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
-                        parseFloat(object.total).toFixed(2)
+                        (
+                          parseFloat(object.total) +
+                          parseFloat(object.totalMora) -
+                          parseFloat(object.discount)
+                        ).toFixed(2)
                       )}</li>
                       <li>RD$ ${significantFigure(
                         parseFloat(object.receivedAmount).toFixed(2)
@@ -721,9 +728,11 @@ function buildReceiptHtml(object) {
                       <li>RD$ ${significantFigure(
                         parseFloat(object.pendingAmount).toFixed(2)
                       )}</li>
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.change || 0).toFixed(2)
-                      )}</li>
+                      <li>RD$ ${
+                        significantFigure(
+                          parseFloat(object.cashBack).toFixed(2)
+                        ) || 0
+                      }</li>
                       </ul>
                     </div>
                   </div>
@@ -780,7 +789,10 @@ function generateTrasactionsTemplate(object) {
                   </div>
                   <div style="width: 15%">
                     <h6 class="title">${significantFigure(
-                      parseFloat(item.totalPaid).toFixed(2)
+                      (
+                        parseFloat(item.totalPaid) +
+                        parseFloat(item.totalPaidMora)
+                      ).toFixed(2)
                     )}</h6>
                   </div
                 </div>
