@@ -790,7 +790,8 @@ function generateTrasactionsTemplate(object) {
                   <div style="width: 15%">
                     <h6 class="title">${significantFigure(
                       (
-                        parseFloat(item.totalPaid) +
+                        parseFloat(item.totalPaid) -
+                        item.currentPaid +
                         parseFloat(item.totalPaidMora)
                       ).toFixed(2)
                     )}</h6>
