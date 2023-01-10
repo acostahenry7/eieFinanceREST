@@ -139,7 +139,7 @@ controller.createPayment = async (req, res) => {
 
   var receiptPaymentId = "";
 
-  console.log(req.body.payment);
+  console.log("%%%%%%%%%%%%%%", req.body.amortization);
 
   Payment.create({
     pay: req.body.payment.totalPaid,
