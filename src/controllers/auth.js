@@ -162,6 +162,7 @@ controller.listLockedUsers = async (req, res) => {
 controller.unlockUser = async (req, res) => {
   let index = lockedUsers.indexOf((item) => item.id === req.params.username);
   lockedUsers.splice(index, 1);
+  res.send({ message: "User Unlocked" });
 };
 controller.lockUser = async (req, res) => {};
 
