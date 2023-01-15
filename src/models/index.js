@@ -56,6 +56,10 @@ db.paymentRouterDetail = require("../models/PaymentRouterDetail.model")(
   Sequelize
 );
 db.outlet = require("../models/Outlet.model")(sequelize, Sequelize);
+db.appAccessControl = require("../models/AppAccessControl.model")(
+  sequelize,
+  Sequelize
+);
 
 db.loanApplication.belongsTo(db.customer, {
   foreignKey: "customer_id",

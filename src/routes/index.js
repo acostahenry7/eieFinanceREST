@@ -97,10 +97,14 @@ module.exports = (app, storage) => {
   //   res.send(test);
   // });
 
-  //Auth
+  //Auth Users
   router.post("/login", authController.login);
   router.get("/auth/lockedUsers", authController.listLockedUsers);
   router.get("/auth/unlockUser/:username", authController.unlockUser);
+
+  //Auth Devices
+  router.get("/auth/devices", authController.listDevices);
+  router.post("/auth/deviceStatus", authController.changeDeviceStatus);
 
   //Customer
   router.get(
@@ -195,7 +199,7 @@ module.exports = (app, storage) => {
 
   //Payment Router
   router.get("/paymentroute/:employeeId", async (req, res) => {
-    console.log(req.params.employeeId);
+    //console.log(req.params.employeeId);
 
     User.findOne({
       attributes: ["router_restriction"],
@@ -203,7 +207,7 @@ module.exports = (app, storage) => {
         employee_id: req.params.employeeId,
       },
     }).then(async (user) => {
-      console.log(user);
+      //console.log(user);
       let query = "";
       query = `select payment_router_detail_id, prd.status_type, position, c.customer_id, c.image_url, 
 c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as location, s.name as section, s.section_id
@@ -228,7 +232,7 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
         const [data, meta] = await db.sequelize.query(query);
         let arr = [];
         arr = _.groupBy(data, (item) => item.section);
-        console.log(arr);
+        //console.log(arr);
         let result = {
           data,
           filteredData: arr,
@@ -352,7 +356,7 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
         },
       })
         .then((payments) => {
-          console.log(payments);
+          //console.log(payments);
           res.send(payments);
         })
         .catch((err) => {
@@ -370,7 +374,7 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
       },
     })
       .then((receipt) => {
-        console.log(receipt);
+        //console.log(receipt);
 
         //results.transactions = [...transactions];
         results.receipt = receipt;
@@ -482,14 +486,14 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
 
     let [customerInfo] = await db.sequelize.query();
 
-    console.log(customers);
+    //console.log(customers);
 
     let results = {
       customers: [...customers],
       loans: [],
     };
 
-    console.log(results);
+    //console.log(results);
 
     res.send(results);
   });

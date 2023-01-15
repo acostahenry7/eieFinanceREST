@@ -26,7 +26,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
     //andCla
     //}
 
-    console.log("Employee ID", req.params.employeeId);
+    //console.log("Employee ID", req.params.employeeId);
     let query = "";
     if (req.params.employeeId == "0") {
       query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code, c.image_url
@@ -73,7 +73,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
       results.loans = [];
 
       data.find((item, index) => {
-        console.log(data[index]);
+        //console.log(data[index]);
         item.loan_situation == "ARREARS" ? results.loans.push(data[index]) : "";
       });
 
@@ -85,13 +85,13 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 
       res.send(results);
     } catch (error) {
-      console.log("Admin customers", error);
+      //console.log("Admin customers", error);
     }
   }
 };
 
 controller.getCustomerById = async (req, res) => {
-  console.log(req.params.id);
+  //console.log(req.params.id);
   const results = {};
 
   const [customer, metadata] = await db.sequelize.query(
