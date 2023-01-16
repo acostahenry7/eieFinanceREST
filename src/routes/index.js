@@ -105,6 +105,11 @@ module.exports = (app, storage) => {
   //Auth Devices
   router.get("/auth/devices", authController.listDevices);
   router.post("/auth/deviceStatus", authController.changeDeviceStatus);
+  router.get(
+    "/auth/unregisterDevice/:deviceId",
+    authController.unregisterDevice
+  );
+  router.post("/auth/deviceMac", authController.setDevMac);
 
   //Customer
   router.get(

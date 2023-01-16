@@ -236,4 +236,39 @@ controller.changeDeviceStatus = async (req, res) => {
     });
 };
 
+controller.unregisterDevice = async (req, res) => {
+  AppAccessControl.destroy({
+    where: {
+      app_access_control_id: req.params.deviceId,
+    },
+  })
+    .then(() => {
+      res.send({ message: "Dispositivo eliminado." });
+    })
+    .catch((err) => {
+      res.send({
+        message: "Hubo un error al tratar del eliminar el dispositvo.",
+      });
+    });
+};
+
+controller.setDevMac = async (req, res) => {
+  AppAccessControl.update(
+    {
+      mac_address: req.body.mac,
+    },
+    {
+      where: {
+        app_access_control_id: req.body.id,
+      },
+    }
+  )
+    .then(() => {
+      res.send({ message: "Done" });
+    })
+    .catch((err) => {
+      res.send({ err });
+    });
+};
+
 module.exports = controller;
