@@ -194,6 +194,7 @@ controller.createPayment = async (req, res) => {
                 last_modified_by: req.body.payment.lastModifiedBy,
                 mora: quota.mora,
                 total_paid_mora: quota.totalPaidMora,
+                execute_process_mora: quota.executeProcessMora,
               },
               {
                 where: {

@@ -38,6 +38,9 @@ module.exports = (sequelize, Sequelize) => {
       total_paid: {
         type: Sequelize.DOUBLE,
       },
+      execute_process_mora: {
+        type: Sequelize.BOOLEAN,
+      },
     },
     {
       schema: "public",
