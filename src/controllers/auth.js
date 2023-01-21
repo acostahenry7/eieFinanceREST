@@ -42,7 +42,7 @@ controller.login = async (req, res) => {
           console.log("TRIES", tries);
           if (tries <= 3) {
             if (req.body.version) {
-              if (req.body.version != "1.2") {
+              if (req.body.version != "1.3") {
                 results.successfullLogin = false;
                 results.error = "MMVERSION";
                 res.send(results);
