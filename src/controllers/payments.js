@@ -211,9 +211,9 @@ controller.createPayment = async (req, res) => {
                   payMora = quota.fixedMora;
                 } else {
                   if (quota.totalPaidMora > quota.fixedMora) {
-                    payMora = quota.totalPaidMora - quota.fixedMora;
+                    payMora = quota.fixedMora;
                   } else {
-                    payMora = quota.fixedMora - quota.totalPaidMora;
+                    payMora = quota.totalPaidMora;
                   }
                 }
 
