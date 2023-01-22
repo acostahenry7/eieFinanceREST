@@ -107,326 +107,314 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 };
 
 controller.createPayment = async (req, res) => {
-  if (req.body.isACharge == false) {
-    const results = {};
+  const results = {};
 
-    var counter = 1;
-    const receiptNumber = generateReceiptNumber();
+  var counter = 1;
+  const receiptNumber = generateReceiptNumber();
 
-    const [reference, meta] = await db.sequelize.query(
-      `select cast(max(reference) as int) + 1 as reference from payment`
-    );
+  const [reference, meta] = await db.sequelize.query(
+    `select cast(max(reference) as int) + 1 as reference from payment`
+  );
 
-    const [maxQuota] = await db.sequelize.query(
-      `select max(quota_number) as quota from amortization where loan_id = '${req.body.payment.loanId}'`
-    );
+  const [maxQuota] = await db.sequelize.query(
+    `select max(quota_number) as quota from amortization where loan_id = '${req.body.payment.loanId}'`
+  );
 
-    const [currentLoanId] = await db.sequelize.query(
-      `select loan_number_id as loan_number from loan where loan_id = '${req.body.payment.loanId}'`
-    );
+  const [currentLoanId] = await db.sequelize.query(
+    `select loan_number_id as loan_number from loan where loan_id = '${req.body.payment.loanId}'`
+  );
 
-    const [currentCustomer] = await db.sequelize.query(
-      `select first_name, last_name from customer where customer_id = '${req.body.payment.customerId}'`
-    );
+  const [currentCustomer] = await db.sequelize.query(
+    `select first_name, last_name from customer where customer_id = '${req.body.payment.customerId}'`
+  );
 
-    const [imgUrl] = await db.sequelize.query(
-      `select image_url from outlet where outlet_id = '${req.body.payment.outletId}'`
-    );
+  const [imgUrl] = await db.sequelize.query(
+    `select image_url from outlet where outlet_id = '${req.body.payment.outletId}'`
+  );
 
-    const [sectionName] = await db.sequelize.query(
-      `select name 
+  const [sectionName] = await db.sequelize.query(
+    `select name 
     from section
     where section_id=(select section_id from loan_payment_address where loan_id ='${req.body.payment.loanId}')`
-    );
+  );
 
-    var receiptPaymentId = "";
+  var receiptPaymentId = "";
 
-    console.log("%%%%%%%%%%%%%%", req.body.amortization);
+  console.log("%%%%%%%%%%%%%%", req.body.amortization);
 
-    Payment.create({
-      pay: req.body.payment.totalPaid,
-      loan_id: req.body.payment.loanId,
-      ncf: req.body.payment.ncf,
-      customer_id: req.body.payment.customerId,
-      payment_type: req.body.payment.paymentType,
-      created_by: req.body.payment.createdBy,
-      last_modified_by: req.body.payment.lastModifiedBy,
-      reference: reference[0].reference,
-      employee_id: req.body.payment.employeeId,
-      outlet_id: req.body.payment.outletId,
-      comment: req.body.payment.commentary,
-      register_id: req.body.payment.registerId,
-      reference_bank: null,
-      bank: null,
-      pay_off_loan_discount: 0,
-      pay_off_loan: req.body.payment.liquidateLoan,
-      capital_subscription: false,
-      status_type: "ENABLED",
-      payment_origin: "APP",
-    })
-      .then((payment) => {
-        req.body.amortization.map(async (quota, index) => {
-          Amortization.findOne({
-            attributes: ["total_paid", "quota_number"],
-            where: { amortization_id: quota.quotaId },
-          })
-            .then((totalPaid) => {
-              if (
-                parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota) &&
-                quota.isPaid == true
-              ) {
-                Loan.update(
-                  {
-                    status_type: "PAID",
-                  },
-                  {
-                    where: {
-                      loan_id: req.body.payment.loanId,
-                    },
-                  }
-                ).then(() => {
-                  console.log("hi");
-                });
-              }
-              Amortization.update(
+  Payment.create({
+    pay: req.body.payment.totalPaid,
+    loan_id: req.body.payment.loanId,
+    ncf: req.body.payment.ncf,
+    customer_id: req.body.payment.customerId,
+    payment_type: req.body.payment.paymentType,
+    created_by: req.body.payment.createdBy,
+    last_modified_by: req.body.payment.lastModifiedBy,
+    reference: reference[0].reference,
+    employee_id: req.body.payment.employeeId,
+    outlet_id: req.body.payment.outletId,
+    comment: req.body.payment.commentary,
+    register_id: req.body.payment.registerId,
+    reference_bank: null,
+    bank: null,
+    pay_off_loan_discount: 0,
+    pay_off_loan: req.body.payment.liquidateLoan,
+    capital_subscription: false,
+    status_type: "ENABLED",
+    payment_origin: "APP",
+  })
+    .then((payment) => {
+      req.body.amortization.map(async (quota, index) => {
+        Amortization.findOne({
+          attributes: ["total_paid", "quota_number"],
+          where: { amortization_id: quota.quotaId },
+        })
+          .then((totalPaid) => {
+            if (
+              parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota) &&
+              quota.isPaid == true
+            ) {
+              Loan.update(
                 {
-                  paid: quota.isPaid,
-                  status_type: quota.statusType,
-                  total_paid: quota.totalPaid,
-                  last_modified_by: req.body.payment.lastModifiedBy,
-                  mora: quota.mora,
-                  total_paid_mora: quota.totalPaidMora,
-                  execute_process_mora: quota.executeProcessMora,
+                  status_type: "PAID",
                 },
                 {
                   where: {
-                    amortization_id: quota.quotaId,
+                    loan_id: req.body.payment.loanId,
                   },
-                  returning: true,
                 }
-              )
-                .then((amortization) => {
-                  //Crea detalle del pago
-                  let payMora = 0;
-                  if (quota.fixedMora == 0) {
+              ).then(() => {
+                console.log("hi");
+              });
+            }
+            Amortization.update(
+              {
+                paid: quota.isPaid,
+                status_type: quota.statusType,
+                total_paid: quota.totalPaid,
+                last_modified_by: req.body.payment.lastModifiedBy,
+                mora: quota.mora,
+                total_paid_mora: quota.totalPaidMora,
+                execute_process_mora: quota.executeProcessMora,
+              },
+              {
+                where: {
+                  amortization_id: quota.quotaId,
+                },
+                returning: true,
+              }
+            )
+              .then((amortization) => {
+                //Crea detalle del pago
+                let payMora = 0;
+                if (quota.fixedMora == 0) {
+                  payMora = quota.fixedMora;
+                } else {
+                  if (quota.totalPaidMora > quota.fixedMora) {
                     payMora = quota.fixedMora;
                   } else {
-                    if (quota.totalPaidMora > quota.fixedMora) {
-                      payMora = quota.fixedMora;
-                    } else {
-                      payMora = quota.totalPaidMora;
-                    }
+                    payMora = quota.totalPaidMora;
                   }
+                }
 
-                  PaymentDetail.create({
-                    amortization_id: quota.quotaId,
-                    payment_id: payment.dataValues.payment_id,
-                    pay: parseFloat(req.body.payment.totalPaid),
-                    pay_mora: payMora,
-                    paid_mora_only: quota.payMoraOnly,
-                    status_type: quota.latestStatus,
-                  })
-                    .then((paymentDetail) => {
-                      results.amortization = [];
+                PaymentDetail.create({
+                  amortization_id: quota.quotaId,
+                  payment_id: payment.dataValues.payment_id,
+                  pay: parseFloat(req.body.payment.totalPaid),
+                  pay_mora: payMora,
+                  paid_mora_only: quota.payMoraOnly,
+                  status_type: quota.latestStatus,
+                })
+                  .then((paymentDetail) => {
+                    results.amortization = [];
 
-                      var date = amortization[1][0].dataValues.payment_date
-                        .toISOString()
-                        .split("T")[0];
+                    var date = amortization[1][0].dataValues.payment_date
+                      .toISOString()
+                      .split("T")[0];
 
-                      results.amortization.push(
-                        date.split("-").reverse().join("/")
-                      );
+                    results.amortization.push(
+                      date.split("-").reverse().join("/")
+                    );
 
-                      if (parseInt(req.body.amortization.length) == counter) {
-                        //Crea recibo del pago
-                        Receipt.create({
-                          html: null,
-                          receipt_number: receiptNumber,
-                          comment: null,
-                          payment_id: paymentDetail.dataValues.payment_id,
-                        })
-                          .then((receipt) => {
-                            results.receipt = receipt;
-                            var bulkTransactions = [];
+                    if (parseInt(req.body.amortization.length) == counter) {
+                      //Crea recibo del pago
+                      Receipt.create({
+                        html: null,
+                        receipt_number: receiptNumber,
+                        comment: null,
+                        payment_id: paymentDetail.dataValues.payment_id,
+                      })
+                        .then((receipt) => {
+                          results.receipt = receipt;
+                          var bulkTransactions = [];
 
-                            req.body.amortization.map((item) => {
-                              console.log("BULK", item);
-                              bulkTransactions.push({
-                                receipt_id: receipt.dataValues.receipt_id,
-                                quota_number: item.quotaNumber,
-                                payment_date: item.date,
-                                amount: item.amount,
-                                mora: item.mora,
-                                discount:
-                                  parseFloat(item.discountInterest) +
-                                  parseFloat(item.discountMora),
-                                total_paid: item.totalPaid,
-                                discount_interest: item.discountInterest,
-                                discount_mora: item.discountMora,
-                                cashback: req.body.payment.change,
+                          req.body.amortization.map((item) => {
+                            console.log("BULK", item);
+                            bulkTransactions.push({
+                              receipt_id: receipt.dataValues.receipt_id,
+                              quota_number: item.quotaNumber,
+                              payment_date: item.date,
+                              amount: item.amount,
+                              mora: item.mora,
+                              discount:
+                                parseFloat(item.discountInterest) +
+                                parseFloat(item.discountMora),
+                              total_paid: item.totalPaid,
+                              discount_interest: item.discountInterest,
+                              discount_mora: item.discountMora,
+                              cashback: req.body.payment.change,
+                            });
+                          });
+
+                          console.log("CURRENT LOAN ID", currentLoanId);
+                          const receiptHtmlObject = {
+                            receiptNumber: receiptNumber,
+                            section: sectionName[0].name,
+                            customer:
+                              currentCustomer[0].first_name +
+                              " " +
+                              currentCustomer[0].last_name,
+                            loanNumber: req.body.payment.loanNumber,
+                            logo: imgUrl[0].image_url,
+                            paymentType: req.body.payment.paymentType,
+                            createdBy: req.body.payment.createdBy,
+                            subTotal: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result += parseFloat(item.amount);
                               });
-                            });
 
-                            console.log("CURRENT LOAN ID", currentLoanId);
-                            const receiptHtmlObject = {
-                              receiptNumber: receiptNumber,
-                              section: sectionName[0].name,
-                              customer:
-                                currentCustomer[0].first_name +
-                                " " +
-                                currentCustomer[0].last_name,
-                              loanNumber: req.body.payment.loanNumber,
-                              logo: imgUrl[0].image_url,
-                              paymentType: req.body.payment.paymentType,
-                              createdBy: req.body.payment.createdBy,
-                              subTotal: (() => {
-                                let result = 0;
-                                bulkTransactions.map((item) => {
-                                  result += parseFloat(item.amount);
-                                });
+                              return result;
+                            })(),
+                            discount: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result += parseFloat(item.discount);
+                              });
+                              return result;
+                            })(),
+                            total: (() => {
+                              let result = 0;
+                              bulkTransactions.map((item) => {
+                                result += parseFloat(item.amount);
+                              });
 
-                                return result;
-                              })(),
-                              discount: (() => {
-                                let result = 0;
-                                bulkTransactions.map((item) => {
-                                  result += parseFloat(item.discount);
-                                });
-                                return result;
-                              })(),
-                              total: (() => {
-                                let result = 0;
-                                bulkTransactions.map((item) => {
-                                  result += parseFloat(item.amount);
-                                });
+                              return result;
+                            })(),
+                            totalPayment: req.body.payment.totalPaid,
+                            date: (() => {
+                              //Date
+                              const date = new Date().getDate();
+                              const month = new Date().getMonth() + 1;
+                              const year = new Date().getFullYear();
 
-                                return result;
-                              })(),
-                              totalPayment: req.body.payment.totalPaid,
-                              date: (() => {
-                                //Date
-                                const date = new Date().getDate();
-                                const month = new Date().getMonth() + 1;
-                                const year = new Date().getFullYear();
+                              //Time
+                              const hour = new Date().getHours();
+                              var minute = new Date().getMinutes();
+                              minute < 10
+                                ? (minute = "" + minute)
+                                : (minute = minute);
+                              var dayTime = hour >= 12 ? "PM" : "AM";
 
-                                //Time
-                                const hour = new Date().getHours();
-                                var minute = new Date().getMinutes();
-                                minute < 10
-                                  ? (minute = "" + minute)
-                                  : (minute = minute);
-                                var dayTime = hour >= 12 ? "PM" : "AM";
+                              const fullDate = `${date}/${month}/${year}  ${hour}:${minute} ${dayTime}`;
+                              return fullDate.toString();
+                            })(),
+                            totalMora: req.body.payment.totalMora,
+                            pendingAmount: req.body.payment.pendingAmount,
+                            receivedAmount: req.body.payment.receivedAmount,
+                            cashBack: req.body.payment.change,
+                            amortization: req.body.amortization,
+                            quotaAmount: req.body.payment.quotaAmount,
+                          };
 
-                                const fullDate = `${date}/${month}/${year}  ${hour}:${minute} ${dayTime}`;
-                                return fullDate.toString();
-                              })(),
-                              totalMora: req.body.payment.totalMora,
-                              pendingAmount: req.body.payment.pendingAmount,
-                              receivedAmount: req.body.payment.receivedAmount,
-                              cashBack: req.body.payment.change,
-                              amortization: req.body.amortization,
-                              quotaAmount: req.body.payment.quotaAmount,
-                            };
+                          var filePath = path.join(
+                            __dirname,
+                            "../assets/res/receipts/"
+                          );
+                          var fileName = "temp_receipt2.html";
+                          var stream = fs.createWriteStream(
+                            filePath + fileName
+                          );
 
-                            var filePath = path.join(
-                              __dirname,
-                              "../assets/res/receipts/"
-                            );
-                            var fileName = "temp_receipt2.html";
-                            var stream = fs.createWriteStream(
-                              filePath + fileName
+                          stream.on("open", async () => {
+                            var html = buildReceiptHtml(receiptHtmlObject);
+                            stream.end(html);
+                            //console.log(html);
+                            await db.sequelize.query(
+                              `update receipt set app_html='${html}' where receipt_id = '${receipt.dataValues.receipt_id}'`
                             );
 
-                            stream.on("open", async () => {
-                              var html = buildReceiptHtml(receiptHtmlObject);
-                              stream.end(html);
-                              //console.log(html);
-                              await db.sequelize.query(
-                                `update receipt set app_html='${html}' where receipt_id = '${receipt.dataValues.receipt_id}'`
-                              );
+                            //await splitAndUpdateLOB(html, 2044, db);
 
-                              //await splitAndUpdateLOB(html, 2044, db);
+                            //console.log(data);
+                          });
 
-                              //console.log(data);
-                            });
+                          ReceiptTransaction.bulkCreate(bulkTransactions)
+                            .then((receiptTransaction) => {
+                              console.log("BULK", bulkTransactions);
+                              LoanPaymentAddress.findOne({
+                                attributes: ["section_id"],
+                                where: {
+                                  loan_id: req.body.payment.loanId,
+                                },
+                              }).then((sectionId) => {
+                                console.log(sectionId.dataValues.section_id);
 
-                            ReceiptTransaction.bulkCreate(bulkTransactions)
-                              .then((receiptTransaction) => {
-                                console.log("BULK", bulkTransactions);
-                                LoanPaymentAddress.findOne({
-                                  attributes: ["section_id"],
+                                Section.findOne({
+                                  attributes: ["name"],
                                   where: {
-                                    loan_id: req.body.payment.loanId,
+                                    section_id: sectionId.dataValues.section_id,
                                   },
-                                }).then((sectionId) => {
-                                  console.log(sectionId.dataValues.section_id);
-
-                                  Section.findOne({
-                                    attributes: ["name"],
-                                    where: {
-                                      section_id:
-                                        sectionId.dataValues.section_id,
-                                    },
-                                  }).then(async (section) => {
-                                    const [zone, metadata] = await db.sequelize
-                                      .query(`
+                                }).then(async (section) => {
+                                  const [zone, metadata] = await db.sequelize
+                                    .query(`
                                         select name 
                                         from zone 
                                         where zone_id = (select zone_id from zone_neighbor_hood where section_id = '${sectionId.dataValues.section_id}'  limit 1)`);
 
-                                    console.log(zone);
-                                    results.loanDetails = {
-                                      section:
-                                        zone[0].name +
-                                        " - " +
-                                        sectionName[0].name,
-                                      pay: req.body.totalPaid,
-                                      // section.dataValues.name +
-                                      // " " +
+                                  console.log(zone);
+                                  results.loanDetails = {
+                                    section:
+                                      zone[0].name +
+                                      " - " +
+                                      sectionName[0].name,
+                                    pay: req.body.totalPaid,
+                                    // section.dataValues.name +
+                                    // " " +
 
-                                      //zone: zone[0].name,
-                                    };
+                                    //zone: zone[0].name,
+                                  };
 
-                                    console.log("HI", results);
-                                    res.send(results);
-                                  });
+                                  console.log("HI", results);
+                                  res.send(results);
                                 });
-                              })
-                              .catch((err) => console.log(err));
-                          })
-                          .catch((err) => {
-                            console.log("Error creating receipt " + err);
-                          });
-                      }
+                              });
+                            })
+                            .catch((err) => console.log(err));
+                        })
+                        .catch((err) => {
+                          console.log("Error creating receipt " + err);
+                        });
+                    }
 
-                      counter++;
-                    })
-                    .catch((err) => {
-                      console.log("Error creating Payment Detail " + err);
-                    });
-                })
-                .catch((err) => {
-                  console.log("Error creating the amortization " + err);
-                });
-            })
-            .catch((err) => {
-              console.log("Error searching for the quota " + err);
-            });
-        });
-      })
-      .catch((err) => {
-        console.log("Error creating the payment " + err);
+                    counter++;
+                  })
+                  .catch((err) => {
+                    console.log("Error creating Payment Detail " + err);
+                  });
+              })
+              .catch((err) => {
+                console.log("Error creating the amortization " + err);
+              });
+          })
+          .catch((err) => {
+            console.log("Error searching for the quota " + err);
+          });
       });
-  } else {
-    await db.sequelize.query(
-      `update loan_charge
-        set status_type='PAID'
-        where loan_charge_id='${req.body.chargeId}'
-      `
-    );
-
-    res.send({ message: "done" });
-  }
+    })
+    .catch((err) => {
+      console.log("Error creating the payment " + err);
+    });
 };
 
 controller.createPaymentRouterDetail = async (req, res) => {
