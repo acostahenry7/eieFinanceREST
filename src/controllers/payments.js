@@ -207,7 +207,7 @@ controller.createPayment = async (req, res) => {
               .then((amortization) => {
                 //Crea detalle del pago
                 let payMora = 0;
-                if (fixedMora == 0) {
+                if (quota.fixedMora == 0) {
                   payMora = quota.fixedMora;
                 } else {
                   if (quota.totalPaidMora > quota.fixedMora) {
