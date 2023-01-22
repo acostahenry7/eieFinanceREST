@@ -206,14 +206,22 @@ controller.createPayment = async (req, res) => {
             )
               .then((amortization) => {
                 //Crea detalle del pago
+                let payMora = 0;
+                if (fixedMora == 0) {
+                  payMora = quota.fixedMora;
+                } else {
+                  if (quota.totalPaidMora > quota.fixedMora) {
+                    payMora = quota.totalPaidMora - quota.fixedMora;
+                  } else {
+                    payMora = quota.fixedMora - quota.totalPaidMora;
+                  }
+                }
+
                 PaymentDetail.create({
                   amortization_id: quota.quotaId,
                   payment_id: payment.dataValues.payment_id,
                   pay: parseFloat(req.body.payment.totalPaid),
-                  pay_mora:
-                    quota.fixedMora == 0
-                      ? quota.fixedMora
-                      : quota.totalPaidMora - quota.fixedMora,
+                  pay_mora: payMora,
                   paid_mora_only: quota.payMoraOnly,
                   status_type: quota.latestStatus,
                 })
