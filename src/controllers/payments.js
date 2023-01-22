@@ -80,8 +80,9 @@ controller.getPaymentsBySearchkey = async (req, res) => {
       .query(`select l.loan_number_id as loan_number, sum(ch.amount) as amount
       from loan_charge lch
       join charge ch on (lch.charge_id = ch.charge_id)
-	  join loan l on (l.loan_id = lch.loan_id)
+	    join loan l on (l.loan_id = lch.loan_id)
       where lch.loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
+      and status_type='PAID'
 	  group by l.loan_number_id`);
 
     const [gDiscount] = await db.sequelize.query(`select discount
