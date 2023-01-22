@@ -213,7 +213,7 @@ controller.createPayment = async (req, res) => {
                   pay_mora:
                     quota.fixedMora == 0
                       ? quota.fixedMora
-                      : quota.totalPaidMora,
+                      : quota.totalPaidMora - quota.fixedMora,
                   paid_mora_only: quota.payMoraOnly,
                   status_type: quota.latestStatus,
                 })
