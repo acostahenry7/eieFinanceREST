@@ -711,7 +711,6 @@ function buildReceiptHtml(object) {
                       <li>Total</li>
                       <li>Monto Recibido</li>
                       <li>Total Pagado</li>
-                      <li>Saldo Pendiente</li>
                       <li>Cambio</li>
                     </div>
                     <div class="col-md-6">
@@ -740,9 +739,6 @@ function buildReceiptHtml(object) {
                       )}</li>
                       <li>RD$ ${significantFigure(
                         parseFloat(object.totalPayment).toFixed(2)
-                      )}</li>
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.pendingAmount).toFixed(2)
                       )}</li>
                       <li>RD$ ${
                         significantFigure(

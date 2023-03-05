@@ -10,6 +10,7 @@ const qrController = require("../controllers/qr");
 const paymentController = require("../controllers/payments");
 const imageController = require("../controllers/camera");
 const receiptController = require("../controllers/receipt");
+const syncController = require("../controllers/sync");
 const multer = require("multer");
 
 const db = require("../models/index");
@@ -469,39 +470,8 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
   });
 
   //Synchronization
-  router.get("/sync/:employeeId", async (req, res) => {
-    let [customers, metaCutomer] = await db.sequelize.query(
-      `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, l.loan_number_id, l.loan_id, l.loan_payment_address_id,
-      lp.street, lp.street2, loan_situation, c.image_url, lb.name as business
-      FROM loan_application la
-      LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
-      JOIN customer c on (c.customer_id = la.customer_id)
-      join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
-      join loan_payment_address lp on (lp.loan_id = l.loan_id)
-      where lp.section_id in 	(select cast(section_id as int) 
-                              from zone_neighbor_hood 
-                              where zone_id in (select zone_id
-                                                from employee_zone
-                                                where employee_id='${req.params.employeeId}'
-                                                and status_type = 'ENABLED'
-                                                ))	
-      and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
-      order by c.first_name`
-    );
-
-    let [customerInfo] = await db.sequelize.query();
-
-    //console.log(customers);
-
-    let results = {
-      customers: [...customers],
-      loans: [],
-    };
-
-    //console.log(results);
-
-    res.send(results);
-  });
+  router.get("/sync/:employeeId", syncController.getCustomers);
+  router.get("/sync/amortization/:employeeId", syncController.getAmortization);
 
   app.use(router);
 };

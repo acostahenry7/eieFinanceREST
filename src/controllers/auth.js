@@ -8,6 +8,8 @@ const Outlet = db.outlet;
 const AppAccessControl = db.appAccessControl;
 const bcrypt = require("bcryptjs");
 
+const APPVERSION = "1.4";
+
 let tries = 0;
 let lockedUsers = [];
 
@@ -42,7 +44,7 @@ controller.login = async (req, res) => {
           console.log("TRIES", tries);
           if (tries <= 3) {
             if (req.body.version) {
-              if (req.body.version != "1.3") {
+              if (req.body.version != APPVERSION) {
                 results.successfullLogin = false;
                 results.error = "MMVERSION";
                 res.send(results);

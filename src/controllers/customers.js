@@ -95,7 +95,8 @@ controller.getCustomerById = async (req, res) => {
   const results = {};
 
   const [customer, metadata] = await db.sequelize.query(
-    `SELECT customer_id as key, identification, first_name, last_name, birth_date, email, p.name as province, m.name as municipality, s.name as section, street, street2, phone, mobile, status_type, image_url
+    `SELECT customer_id as key, identification, first_name, last_name, birth_date, email, p.name as province, m.name as municipality, 
+    s.name as section, street, street2, phone, mobile, status_type, image_url
     from customer c
     join province p on (p.province_id = c.province_id)
     join municipality m on (m.municipality_id = c.municipality_id)
