@@ -47,7 +47,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
       join loan_application la on (la.loan_application_id = l.loan_application_id)
       where la.customer_id = '${customerId}'
       and a.outlet_id = l.outlet_id
-      and l.status_type != 'PAID'
+      and l.status_type != 'PAID' 
       group by l.loan_number_id, l.loan_id, l.number_of_installments`
     );
 
@@ -65,19 +65,18 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     //
     console.log(loanNumbers.join(","));
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select a.amortization_id, l.loan_number_id, amount_of_fee as quota_amount, ((amount_of_fee - total_paid) + mora) - a.discount as current_fee, 
-      quota_number, a.created_date as date, 
-      mora , payment_date, discount_mora, discount_interest, amount_of_fee - total_paid as fixed_amount, a.status_type, a.total_paid as current_paid,
-      total_paid_mora      
-      from amortization a
-      left join loan l on (a.loan_id = l.loan_id)
-      where l.loan_number_id in (${loanNumbers.join()})
-      and a.outlet_id = l.outlet_id 
-      and a.paid='false'
-      order by a.loan_id, quota_number`);
+      .query(`select a.amortization_id, a.quota_number,((a.amount_of_fee + a.mora) - a.discount) - a.total_paid as quota_amount, a.amount_of_fee,
+      l.loan_number_id, a.capital, a.interest, a.mora, a.total_paid, a.total_paid_mora, a.discount, a.status_type, a.paid  
+            from amortization a
+            left join loan l on (a.loan_id = l.loan_id)
+            where l.loan_number_id in (${loanNumbers.join()})
+            and a.outlet_id = l.outlet_id 
+            and a.paid='false'
+            and a.status_type not like 'DELETE'
+            order by a.loan_id, quota_number`);
 
     const [charges] = await db.sequelize
-      .query(`select loan_charge_id as charge_id, l.loan_number_id as loan_number, sum(ch.amount) as amount
+      .query(`select loan_charge_id as charge_id, l.loan_number_id as loan_number,  lch.amount as amount
       from loan_charge lch
       join charge ch on (lch.charge_id = ch.charge_id)
 	    join loan l on (l.loan_id = lch.loan_id)
@@ -189,18 +188,13 @@ controller.createPayment = async (req, res) => {
             }
             Amortization.update(
               {
-                paid: quota.isPaid,
+                paid: quota.paid,
                 status_type: quota.statusType,
-                total_paid: (
-                  parseFloat(quota.currentPaid) + parseFloat(quota.totalPaid)
-                ).toFixed(2),
-                last_modified_by: req.body.payment.lastModifiedBy,
+                total_paid: quota.totalPaid,
+                //last_modified_by: req.body.payment.lastModifiedBy,
                 mora: quota.mora,
-                total_paid_mora: (
-                  parseFloat(quota.fixedTotalPaidMora) +
-                  parseFloat(quota.totalPaidMora)
-                ).toFixed(2),
-                execute_process_mora: quota.executeProcessMora,
+                total_paid_mora: quota.totalPaidMora,
+                //execute_process_mora: quota.executeProcessMora,
               },
               {
                 where: {
@@ -226,7 +220,7 @@ controller.createPayment = async (req, res) => {
                   amortization_id: quota.quotaId,
                   payment_id: payment.dataValues.payment_id,
                   pay: parseFloat(req.body.payment.totalPaid),
-                  pay_mora: payMora,
+                  pay_mora: quota.totalPaidMora,
                   paid_mora_only: quota.payMoraOnly,
                   status_type: quota.latestStatus,
                 })
@@ -261,9 +255,7 @@ controller.createPayment = async (req, res) => {
                               payment_date: item.date,
                               amount: item.amount,
                               mora: item.mora,
-                              discount:
-                                parseFloat(item.discountInterest) +
-                                parseFloat(item.discountMora),
+                              discount: parseFloat(item.discount),
                               total_paid: item.totalPaid,
                               discount_interest: item.discountInterest,
                               discount_mora: item.discountMora,
@@ -420,6 +412,37 @@ controller.createPayment = async (req, res) => {
     .catch((err) => {
       console.log("Error creating the payment " + err);
     });
+};
+
+controller.payCharge = async (req, res) => {
+  try {
+    let receiptNumber = generateReceiptNumber();
+
+    let [data] = await db.sequelize
+      .query(`select loan_charge_id as charge_id,ch.name, ch.description, l.loan_number_id as loan_number, lch.amount as amount, lch.status_type
+    from loan_charge lch
+    join charge ch on (lch.charge_id = ch.charge_id)
+    join loan l on (l.loan_id = lch.loan_id)
+    where lch.loan_charge_id = '${req.body.loanChargeId}'
+    and lch.status_type ='CREATED'
+  group by l.loan_number_id, loan_charge_id, ch.name, ch.description`);
+
+    await db.sequelize.query(`update loan_charge
+    set status_type = 'PAID'
+    where loan_charge_id = '${req.body.loanChargeId}'`);
+
+    let result = {
+      ...data[0],
+      receiptNumber,
+    };
+
+    res.send(result);
+  } catch (error) {
+    res.send({
+      message: error.message,
+      error: true,
+    });
+  }
 };
 
 controller.createPaymentRouterDetail = async (req, res) => {
@@ -685,19 +708,7 @@ function buildReceiptHtml(object) {
             <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
               <div class="row">
                 <div style="width: 17%">
-                  <h6 class="title">No. Cuota</h6>
-                </div>
-                <div style="width: 27%">
-                  <h6 class="title">Fecha Cuota</h6>
-                </div>
-                <div style="width: 19%">
-                  <h6 class="title">Monto</h6>
-                </div>
-                <div style="width: 17%">
-                  <h6 class="title">Mora</h6>
-                </div>
-                <div style="width: 20%">
-                  <h6 class="title">Pagado</h6>
+                  <h6 class="title"># Cuotas</h6>
                 </div>
               </div>
               <div class="mt-2 r_body_detail_data" style="display: block">
@@ -778,59 +789,7 @@ function generateTrasactionsTemplate(object) {
   object.amortization?.map((item) => {
     console.log("AMORTIZATION TO RECEIPT", item);
     arr.push(`  
-            <ul style="list-style: none; padding: 0">
-              <li>
-                <div style="display: flex">
-                  <div style="width: 16%">
-                    <h6 class="title">${item.quotaNumber}/${
-      object.quotaAmount
-    }</h6>
-                  </div>
-                  <div style="width: 30%">
-                    <h6 class="title">${item.date
-                      //.toISOString()
-                      .split("T")[0]
-                      .split("-")
-                      .reverse()
-                      .join("/")}</h6>
-                  </div>
-                  <div style="width: 19%">
-                    <h6 class="title">${significantFigure(
-                      parseFloat(item.amount).toFixed(2)
-                    )}</h6>
-                  </div>
-                  <div style="width: 19%">
-                    <h6 class="title">${significantFigure(
-                      parseFloat(item.fixedMora).toFixed(2)
-                    )}</h6>
-                  </div>
-                  <div style="width: 15%">
-                    <h6 class="title">${significantFigure(
-                      (
-                        parseFloat(item.totalPaid) -
-                        item.currentPaid +
-                        parseFloat(item.totalPaidMora)
-                      ).toFixed(2)
-                    )}</h6>
-                  </div
-                </div>
-              </li>
-              <li>
-                <div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
-                <div style="">
-                  <h5 style="font-size: 12px">Desc. Mora ${significantFigure(
-                    parseFloat(item.discountMora).toFixed(2)
-                  )}</h5>
-                </div>
-                <div style="">
-                  <h5 style="font-size: 12px">Desc. Interes ${significantFigure(
-                    parseFloat(item.discountInterest).toFixed(2)
-                  )}</h5>
-                </div>
-                </div>
-              </li>
-
-            </ul>
+            <span>${item.quotaNumber} </span>
     `);
   });
 
@@ -941,4 +900,55 @@ function separatorPlace(num, fPos, sPos) {
   }
 
   return result;
+}
+
+{
+  /* <div style="display: flex">
+<div style="width: 16%">
+  <h6 class="title">${item.quotaNumber}/${
+object.quotaAmount
+}</h6>
+</div>
+<div style="width: 30%">
+  <h6 class="title">${item.date
+    //.toISOString()
+    .split("T")[0]
+    .split("-")
+    .reverse()
+    .join("/")}</h6>
+</div>
+<div style="width: 19%">
+  <h6 class="title">${significantFigure(
+    parseFloat(item.amount).toFixed(2)
+  )}</h6>
+</div>
+<div style="width: 19%">
+  <h6 class="title">${significantFigure(
+    parseFloat(item.fixedMora).toFixed(2)
+  )}</h6>
+</div>
+<div style="width: 15%">
+  <h6 class="title">${significantFigure(
+    (
+      parseFloat(item.totalPaid) -
+      item.currentPaid +
+      parseFloat(item.totalPaidMora)
+    ).toFixed(2)
+  )}</h6>
+</div
+</div>
+</li>
+<li>
+<div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
+<div style="">
+<h5 style="font-size: 12px">Desc. Mora ${significantFigure(
+  parseFloat(item.discountMora).toFixed(2)
+)}</h5>
+</div>
+<div style="">
+<h5 style="font-size: 12px">Desc. Interes ${significantFigure(
+  parseFloat(item.discountInterest).toFixed(2)
+)}</h5>
+</div>
+</div> */
 }

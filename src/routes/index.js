@@ -197,6 +197,7 @@ module.exports = (app, storage) => {
   router.post("/payment", paymentController.getPaymentsBySearchkey);
 
   router.post("/payment/create", paymentController.createPayment);
+  router.post("/payment/charge/create", paymentController.payCharge);
 
   router.post(
     "/payment/routerdetail/create",
