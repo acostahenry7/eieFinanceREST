@@ -82,7 +82,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 	    join loan l on (l.loan_id = lch.loan_id)
       where lch.loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
       and lch.status_type ='CREATED'
-	  group by l.loan_number_id, loan_charge_id`);
+	  group by l.loan_number_id, loan_charge_id, lch.amount`);
 
     const [gDiscount] = await db.sequelize.query(`select discount
     from amortization_discount
@@ -142,7 +142,7 @@ controller.createPayment = async (req, res) => {
   console.log("%%%%%%%%%%%%%%", req.body.amortization);
 
   Payment.create({
-    pay: req.body.payment.totalPaid,
+    pay: req.body.payment.pay,
     loan_id: req.body.payment.loanId,
     ncf: req.body.payment.ncf,
     customer_id: req.body.payment.customerId,
