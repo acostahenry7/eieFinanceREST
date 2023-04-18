@@ -425,7 +425,7 @@ controller.payCharge = async (req, res) => {
     join loan l on (l.loan_id = lch.loan_id)
     where lch.loan_charge_id = '${req.body.loanChargeId}'
     and lch.status_type ='CREATED'
-  group by l.loan_number_id, loan_charge_id, ch.name, ch.description`);
+  group by l.loan_number_id, loan_charge_id, ch.name, ch.description, lch.amount, lch.status_type`);
 
     await db.sequelize.query(`update loan_charge
     set status_type = 'PAID'
