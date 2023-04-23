@@ -137,9 +137,13 @@ controller.createPayment = async (req, res) => {
     where section_id=(select section_id from loan_payment_address where loan_id ='${req.body.payment.loanId}')`
   );
 
+  const [amountOfQuotas] = await db.sequelize.query(
+    `select number_of_installments as "amountOfQuotas" from loan where loan_id = '${req.body.payment.loanId}'`
+  );
+
   var receiptPaymentId = "";
 
-  console.log("%%%%%%%%%%%%%%", req.body.amortization);
+  console.log("%%%%%%%%%%%%%%", amountOfQuotas[0]);
 
   Payment.create({
     pay: req.body.payment.pay,
@@ -275,30 +279,34 @@ controller.createPayment = async (req, res) => {
                             logo: imgUrl[0].image_url,
                             paymentType: req.body.payment.paymentType,
                             createdBy: req.body.payment.createdBy,
-                            subTotal: (() => {
-                              let result = 0;
-                              bulkTransactions.map((item) => {
-                                result += parseFloat(item.amount);
-                              });
+                            // subTotal: (() => {
+                            //   let result = 0;
+                            //   bulkTransactions.map((item) => {
+                            //     result += parseFloat(item.amount);
+                            //   });
 
-                              return result;
-                            })(),
-                            discount: (() => {
-                              let result = 0;
-                              bulkTransactions.map((item) => {
-                                result += parseFloat(item.discount);
-                              });
-                              return result;
-                            })(),
-                            total: (() => {
-                              let result = 0;
-                              bulkTransactions.map((item) => {
-                                result += parseFloat(item.amount);
-                              });
+                            //   return result;
+                            // })(),
+                            // discount: (() => {
+                            //   let result = 0;
+                            //   bulkTransactions.map((item) => {
+                            //     result += parseFloat(item.discount);
+                            //   });
+                            //   return result;
+                            // })(),
+                            // total: (() => {
+                            //   let result = 0;
+                            //   bulkTransactions.map((item) => {
+                            //     result += parseFloat(item.amount);
+                            //   });
 
-                              return result;
-                            })(),
-                            totalPayment: req.body.payment.totalPaid,
+                            //   return result;
+                            // })(),
+                            totalPaid:
+                              req.body.payment.totalPaid -
+                              req.body.payment.fixedTotalPaid +
+                              (req.body.payment.totalPaidMora -
+                                req.body.payment.fixedTotalPaidMora),
                             date: (() => {
                               //Date
                               const date = new Date().getDate();
@@ -316,12 +324,15 @@ controller.createPayment = async (req, res) => {
                               const fullDate = `${date}/${month}/${year}  ${hour}:${minute} ${dayTime}`;
                               return fullDate.toString();
                             })(),
-                            totalMora: req.body.payment.totalMora,
+                            totalPaidMora:
+                              req.body.payment.totalPaidMora -
+                              req.body.payment.fixedTotalPaidMora,
                             pendingAmount: req.body.payment.pendingAmount,
                             receivedAmount: req.body.payment.receivedAmount,
                             cashBack: req.body.payment.change,
                             amortization: req.body.amortization,
                             quotaAmount: req.body.payment.quotaAmount,
+                            amountOfQuotas: amountOfQuotas[0].amountOfQuotas,
                           };
 
                           var filePath = path.join(
@@ -565,6 +576,7 @@ function buildReceiptHtml(object) {
   let arr = [];
 
   return `<!DOCTYPE html>
+  <html>
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -616,6 +628,17 @@ function buildReceiptHtml(object) {
 
       .r_body_detail_data h6{
         font-size: 12px;
+      }
+
+      .tran_container  {
+          max-width: 240px;
+        
+      }
+
+      .tran_container span {
+        font-size: 14px; 
+        font-weight: normal;
+
       }
 
       .r_section {
@@ -699,68 +722,78 @@ function buildReceiptHtml(object) {
                 <h6>${object.createdBy}</h6>
               </div>
             </div>
+            <div class="col-md-6">
+              <div>
+                <h6 class="title">Cantidad de cuotas</h6>
+                <h6>${object.amountOfQuotas}</h6>
+              </div>
+            </div>
           </div>
           </div>
           <div class="r_body_detail">
             <div class="r_section" style="background-color:  #fff">
               <h6 class="text-dark title">Transacciones</h6>
             </div>
-            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
+            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold; padding: 10px">
               <div class="row">
-                <div style="width: 17%">
-                  <h6 class="title"># Cuotas</h6>
+                <div style="display: flex; justify-content: space-between;">
+                  <h6 class="title">Cuotas Pagadas</h6>
+                  <h6 class="title">Monto</h6>
                 </div>
-              </div>
-              <div class="mt-2 r_body_detail_data" style="display: block">
-              ${generateTrasactionsTemplate(object)}
+                <div style="display: flex; justify-content: space-between;">
+                  <div class="tran_container">
+                    ${generateTrasactionsTemplate(object, "PAID")}
+                </div>
+                <div class="tran_amount tran_container">
+                  <span>${getTransactionAmount(
+                    object.amortization,
+                    "PAID"
+                  )}</span>
+                </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between;">
+                  <h6 class="title">Abono a cuota</h6>
+                  <h6 class="title">Monto</h6>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <div class="tran_container">
+                  ${generateTrasactionsTemplate(object, "COMPOST")}
+                </div>
+                <div class="tran_amount tran_container">
+                  <span>${getTransactionAmount(
+                    object.amortization,
+                    "COMPOST"
+                  )}</span>
+                </div>
+                </div>
               </div>
               <div class="row mt-4">
                 <div class="col-md-1">
 
                 </div>
-                <div class="col-md-11" style="list-style: none; font-size: 13px;">
-                  <div style="display: flex; flex-direction: row">
-                    <div class="col-md-6">
-                      <li>Total Mora</li>
-                      <li>SubTotal</li>
-                      <li>Descuento</li>
-                      <li>Total</li>
-                      <li>Monto Recibido</li>
-                      <li>Total Pagado</li>
-                      <li>Cambio</li>
+                <div class="col-md-12" style="list-style: none; font-size: 13px; ">
+                  <div style="display: flex; flex-direction: row; justify-content: flex-end">
+                    <div class="col-md-5" style="text-align: right;">
+                      <li>Mora Pagada:</li>
+                      <li style="background-color: black; color: white">Total Pagado:</li>
+                      <li>Monto Recibido:</li>
+                      <li style="background-color: black; color: white">Devuelta:</li>
                     </div>
-                    <div class="col-md-6">
-                      <ul style="list-style: none;">
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.totalMora).toFixed(2)
+                    <div class="p-0 col-md-5">
+                      <ul style="list-style: none; padding: 0; text-align: right;">
+                      <li>${significantFigure(
+                        object.totalPaidMora?.toFixed(2)
                       )}</li>
-                      <li>RD$ ${significantFigure(
-                        (
-                          parseFloat(object.subTotal) +
-                          parseFloat(object.totalMora)
-                        ).toFixed(2)
+                      <li style="background-color: black; color: white">${significantFigure(
+                        object.totalPaid?.toFixed(2)
                       )}</li>
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.discount).toFixed(2)
+                      <li>${significantFigure(
+                        object.receivedAmount?.toFixed(2)
                       )}</li>
-                      <li>RD$ ${significantFigure(
-                        (
-                          parseFloat(object.total) +
-                          parseFloat(object.totalMora) -
-                          parseFloat(object.discount)
-                        ).toFixed(2)
+                      <li style="background-color: black; color: white">${significantFigure(
+                        object.cashBack?.toFixed(2)
                       )}</li>
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.receivedAmount).toFixed(2)
-                      )}</li>
-                      <li>RD$ ${significantFigure(
-                        parseFloat(object.totalPayment).toFixed(2)
-                      )}</li>
-                      <li>RD$ ${
-                        significantFigure(
-                          parseFloat(object.cashBack).toFixed(2)
-                        ) || 0
-                      }</li>
                       </ul>
                     </div>
                   </div>
@@ -782,18 +815,30 @@ function buildReceiptHtml(object) {
 `;
 }
 
-function generateTrasactionsTemplate(object) {
+function generateTrasactionsTemplate(object, status) {
   let arr = [];
 
-  let transactionTemplate = `<div></div>`;
-  object.amortization?.map((item) => {
-    console.log("AMORTIZATION TO RECEIPT", item);
-    arr.push(`  
-            <span>${item.quotaNumber} </span>
-    `);
-  });
+  //let transactionTemplate = `<div></div>`;
+  object.amortization
+    ?.filter((i) => i.statusType == status)
+    .map((item, index) => {
+      console.log("AMORTIZATION TO RECEIPT", item);
 
-  console.log(arr.join(",").toString());
+      switch (index) {
+        case object.amortization.length - 2:
+          arr.push(`<span>${item.quotaNumber} y </span>`);
+          break;
+        case object.amortization.length - 1:
+          arr.push(`<span>${item.quotaNumber}</span>`);
+          break;
+
+        default:
+          arr.push(`<span>${item.quotaNumber}, </span>`);
+          break;
+      }
+    });
+
+  console.log(arr.join(" ").toString());
 
   return arr.length > 1
     ? arr.join(",").toString().replace(/,/g, "")
@@ -902,53 +947,12 @@ function separatorPlace(num, fPos, sPos) {
   return result;
 }
 
-{
-  /* <div style="display: flex">
-<div style="width: 16%">
-  <h6 class="title">${item.quotaNumber}/${
-object.quotaAmount
-}</h6>
-</div>
-<div style="width: 30%">
-  <h6 class="title">${item.date
-    //.toISOString()
-    .split("T")[0]
-    .split("-")
-    .reverse()
-    .join("/")}</h6>
-</div>
-<div style="width: 19%">
-  <h6 class="title">${significantFigure(
-    parseFloat(item.amount).toFixed(2)
-  )}</h6>
-</div>
-<div style="width: 19%">
-  <h6 class="title">${significantFigure(
-    parseFloat(item.fixedMora).toFixed(2)
-  )}</h6>
-</div>
-<div style="width: 15%">
-  <h6 class="title">${significantFigure(
-    (
-      parseFloat(item.totalPaid) -
-      item.currentPaid +
-      parseFloat(item.totalPaidMora)
-    ).toFixed(2)
-  )}</h6>
-</div
-</div>
-</li>
-<li>
-<div class="mt-2" style="display: flex; flex-direction: row; justify-content: space-around">
-<div style="">
-<h5 style="font-size: 12px">Desc. Mora ${significantFigure(
-  parseFloat(item.discountMora).toFixed(2)
-)}</h5>
-</div>
-<div style="">
-<h5 style="font-size: 12px">Desc. Interes ${significantFigure(
-  parseFloat(item.discountInterest).toFixed(2)
-)}</h5>
-</div>
-</div> */
+function getTransactionAmount(quotas, status) {
+  let amount = quotas
+    .filter((i) => i.statusType == status)
+    .reduce((acc, i) => acc + i.totalPaid - i.fixedTotalPaid, 0);
+
+  return significantFigure(
+    (((amount + Number.EPSILON) * 100) / 100).toFixed(2)
+  );
 }

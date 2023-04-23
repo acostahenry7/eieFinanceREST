@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+  <html>
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -52,6 +53,17 @@
         font-size: 12px;
       }
 
+      .tran_container  {
+          max-width: 240px;
+        
+      }
+
+      .tran_container span {
+        font-size: 14px; 
+        font-weight: normal;
+
+      }
+
       .r_section {
         margin-top: 15px;
         display: flex;
@@ -92,19 +104,19 @@
               <div class="col-md-6">
                 <div>
                   <h6 class="title">Numero Recibo</h6>
-                  <h6>2913-1565</h6>
+                  <h6>4697-7017</h6>
                 </div>
               </div>
               <div class="col-md-6">
                 <h6 class="title">Fecha:</h6>
-                <h6>17/4/2023  21:20 PM</h6>
+                <h6>23/4/2023  17:22 PM</h6>
               </div>
             </div>
             <div class="row mt-3">
               <div class="col-md-6">
                 <div>
                   <h6 class="title">Prestamo</h6>
-                  <h6>19818</h6>
+                  <h6>16552</h6>
                 </div>
               </div>
               <div class="col-md-6">
@@ -133,47 +145,64 @@
                 <h6>liberio</h6>
               </div>
             </div>
+            <div class="col-md-6">
+              <div>
+                <h6 class="title">Cantidad de cuotas</h6>
+                <h6>46</h6>
+              </div>
+            </div>
           </div>
           </div>
           <div class="r_body_detail">
             <div class="r_section" style="background-color:  #fff">
               <h6 class="text-dark title">Transacciones</h6>
             </div>
-            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold">
+            <div class="r_body_detail_headers" style="width: 100%; font-weight: bold; padding: 10px">
               <div class="row">
-                <div style="width: 17%">
-                  <h6 class="title"># Cuotas</h6>
+                <div style="display: flex; justify-content: space-between;">
+                  <h6 class="title">Cuotas Pagadas</h6>
+                  <h6 class="title">Monto</h6>
                 </div>
-              </div>
-              <div class="mt-2 r_body_detail_data" style="display: block">
+                <div style="display: flex; justify-content: space-between;">
+                  <div class="tran_container">
+                    
+                </div>
+                <div class="tran_amount tran_container">
+                  <span>0.00</span>
+                </div>
+                </div>
                 
-            <span>30 </span>
-    
+                <div style="display: flex; justify-content: space-between;">
+                  <h6 class="title">Abono a cuota</h6>
+                  <h6 class="title">Monto</h6>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <div class="tran_container">
+                  <span>39</span>
+                </div>
+                <div class="tran_amount tran_container">
+                  <span>0.00</span>
+                </div>
+                </div>
               </div>
               <div class="row mt-4">
                 <div class="col-md-1">
 
                 </div>
-                <div class="col-md-11" style="list-style: none; font-size: 13px;">
-                  <div style="display: flex; flex-direction: row">
-                    <div class="col-md-6">
-                      <li>Total Mora</li>
-                      <li>SubTotal</li>
-                      <li>Descuento</li>
-                      <li>Total</li>
-                      <li>Monto Recibido</li>
-                      <li>Total Pagado</li>
-                      <li>Cambio</li>
+                <div class="col-md-12" style="list-style: none; font-size: 13px; ">
+                  <div style="display: flex; flex-direction: row; justify-content: flex-end">
+                    <div class="col-md-5" style="text-align: right;">
+                      <li>Mora Pagada:</li>
+                      <li style="background-color: black; color: white">Total Pagado:</li>
+                      <li>Monto Recibido:</li>
+                      <li style="background-color: black; color: white">Devuelta:</li>
                     </div>
-                    <div class="col-md-6">
-                      <ul style="list-style: none;">
-                      <li>RD$ 797.64</li>
-                      <li>RD$ NaN.00</li>
-                      <li>RD$ 0.00</li>
-                      <li>RD$ NaN.00</li>
-                      <li>RD$ 2,297.64</li>
-                      <li>RD$ 1,500.00</li>
-                      <li>RD$ 0.00</li>
+                    <div class="p-0 col-md-5">
+                      <ul style="list-style: none; padding: 0; text-align: right;">
+                      <li>1.00</li>
+                      <li style="background-color: black; color: white">1.00</li>
+                      <li>1.00</li>
+                      <li style="background-color: black; color: white">0.00</li>
                       </ul>
                     </div>
                   </div>
