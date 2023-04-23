@@ -825,10 +825,12 @@ function generateTrasactionsTemplate(object, status) {
       console.log("AMORTIZATION TO RECEIPT", item);
 
       switch (index) {
-        case object.amortization.length - 2:
+        case object.amortization?.filter((i) => i.statusType == status).length -
+          2:
           arr.push(`<span>${item.quotaNumber} y </span>`);
           break;
-        case object.amortization.length - 1:
+        case object.amortization?.filter((i) => i.statusType == status).length -
+          1:
           arr.push(`<span>${item.quotaNumber}</span>`);
           break;
 
