@@ -387,6 +387,8 @@ controller.createPayment = async (req, res) => {
                                       " - " +
                                       sectionName[0].name,
                                     pay: req.body.totalPaid,
+                                    amountOfQuotas:
+                                      amountOfQuotas[0].amountOfQuotas,
                                     // section.dataValues.name +
                                     // " " +
 
