@@ -142,8 +142,9 @@ controller.createPayment = async (req, res) => {
   );
 
   var receiptPaymentId = "";
+  let isLoanPaid = false;
 
-  console.log("%%%%%%%%%%%%%%", amountOfQuotas[0]);
+  console.log("%%%%%%%%%%%%%%", req.body.payment);
 
   Payment.create({
     pay: req.body.payment.pay,
@@ -175,8 +176,10 @@ controller.createPayment = async (req, res) => {
           .then((totalPaid) => {
             if (
               parseInt(quota.quotaNumber) == parseInt(maxQuota[0].quota) &&
-              quota.isPaid == true
+              quota.paid == true
             ) {
+              isLoanPaid = true;
+
               Loan.update(
                 {
                   status_type: "PAID",
@@ -333,6 +336,7 @@ controller.createPayment = async (req, res) => {
                             amortization: req.body.amortization,
                             quotaAmount: req.body.payment.quotaAmount,
                             amountOfQuotas: amountOfQuotas[0].amountOfQuotas,
+                            payLoan: isLoanPaid,
                           };
 
                           var filePath = path.join(
@@ -737,39 +741,8 @@ function buildReceiptHtml(object) {
               <h6 class="text-dark title">Transacciones</h6>
             </div>
             <div class="r_body_detail_headers" style="width: 100%; font-weight: bold; padding: 10px">
-              <div class="row">
-                <div style="display: flex; justify-content: space-between;">
-                  <h6 class="title">Cuotas Pagadas</h6>
-                  <h6 class="title">Monto</h6>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <div class="tran_container">
-                    ${generateTrasactionsTemplate(object, "PAID")}
-                </div>
-                <div class="tran_amount tran_container">
-                  <span>${getTransactionAmount(
-                    object.amortization,
-                    "PAID"
-                  )}</span>
-                </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between;">
-                  <h6 class="title">Abono a cuota</h6>
-                  <h6 class="title">Monto</h6>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <div class="tran_container">
-                  ${generateTrasactionsTemplate(object, "COMPOST")}
-                </div>
-                <div class="tran_amount tran_container">
-                  <span>${getTransactionAmount(
-                    object.amortization,
-                    "COMPOST"
-                  )}</span>
-                </div>
-                </div>
-              </div>
+
+              ${generateDetail(object)}
               <div class="row mt-4">
                 <div class="col-md-1">
 
@@ -815,6 +788,42 @@ function buildReceiptHtml(object) {
   </body>
 </html>
 `;
+}
+
+function generateDetail(object) {
+  if (object.payLoan == true) {
+    return `<div style="text-align: center">
+              <span>-- Saldo de préstamo  --</span>
+            </div>`;
+  } else {
+    return `<div class="row">
+    <div style="display: flex; justify-content: space-between;">
+      <h6 class="title">Cuotas Pagadas</h6>
+      <h6 class="title">Monto</h6>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <div class="tran_container">
+        ${generateTrasactionsTemplate(object, "PAID")}
+    </div>
+    <div class="tran_amount tran_container">
+      <span>${getTransactionAmount(object.amortization, "PAID")}</span>
+    </div>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between;">
+      <h6 class="title">Abono a cuota</h6>
+      <h6 class="title">Monto</h6>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <div class="tran_container">
+      ${generateTrasactionsTemplate(object, "COMPOST")}
+    </div>
+    <div class="tran_amount tran_container">
+      <span>${getTransactionAmount(object.amortization, "COMPOST")}</span>
+    </div>
+    </div>
+  </div>`;
+  }
 }
 
 function generateTrasactionsTemplate(object, status) {
