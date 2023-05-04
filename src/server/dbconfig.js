@@ -12,7 +12,7 @@
 //     acquire: 30000,
 //     idle: 10000,
 //   },
-//};
+// };
 
 module.exports = {
   host: "10.202.5.39",

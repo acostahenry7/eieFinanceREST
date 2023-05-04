@@ -196,11 +196,20 @@ controller.createPayment = async (req, res) => {
             Amortization.update(
               {
                 paid: quota.paid,
-                status_type: quota.statusType,
-                total_paid: quota.totalPaid,
+                status_type:
+                  quota.fixedStatusType == "DEFEATED" &&
+                  quota.statusType != "PAID"
+                    ? "DEFEATED"
+                    : quota.statusType,
+                //total_paid: quota.totalPaid,
+                total_paid: quota.totalPaid - quota.discount,
                 //last_modified_by: req.body.payment.lastModifiedBy,
                 mora: quota.mora,
-                total_paid_mora: quota.totalPaidMora,
+                total_paid_mora:
+                  quota.discount > 0
+                    ? quota.totalPaidMora +
+                      (quota.discount - quota.totalPaidMora)
+                    : quota.totalPaidMora,
                 //execute_process_mora: quota.executeProcessMora,
               },
               {
@@ -226,10 +235,15 @@ controller.createPayment = async (req, res) => {
                 PaymentDetail.create({
                   amortization_id: quota.quotaId,
                   payment_id: payment.dataValues.payment_id,
-                  pay: parseFloat(req.body.payment.totalPaid),
-                  pay_mora: quota.totalPaidMora,
+                  //pay: parseFloat(req.body.payment.totalPaid),
+                  pay: quota.totalPaid + quota.totalPaidMora,
+                  pay_mora:
+                    quota.discount > 0
+                      ? quota.totalPaidMora +
+                        (quota.discount - quota.totalPaidMora)
+                      : quota.totalPaidMora,
                   paid_mora_only: quota.payMoraOnly,
-                  status_type: quota.latestStatus,
+                  status_type: quota.fixedStatusType,
                 })
                   .then((paymentDetail) => {
                     results.amortization = [];
