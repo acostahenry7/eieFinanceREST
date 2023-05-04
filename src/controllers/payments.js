@@ -236,7 +236,10 @@ controller.createPayment = async (req, res) => {
                   amortization_id: quota.quotaId,
                   payment_id: payment.dataValues.payment_id,
                   //pay: parseFloat(req.body.payment.totalPaid),
-                  pay: quota.totalPaid + quota.totalPaidMora,
+                  pay:
+                    quota.totalPaid +
+                    quota.totalPaidMora -
+                    quota.fixedTotalPaid,
                   pay_mora:
                     quota.discount > 0
                       ? quota.totalPaidMora +
