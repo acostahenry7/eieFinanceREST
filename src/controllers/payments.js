@@ -238,15 +238,16 @@ controller.createPayment = async (req, res) => {
                   payment_id: payment.dataValues.payment_id,
                   //pay: parseFloat(req.body.payment.totalPaid),
                   pay:
-                    quota.totalPaid +
-                    quota.totalPaidMora -
-                    quota.fixedTotalPaid,
+                    quota.totalPaid -
+                    quota.fixedTotalPaid +
+                    (quota.totalPaidMora - quota.fixedTotalPaidMora),
+
                   pay_mora:
                     quota.discount > 0
                       ? // ? quota.totalPaidMora +
                         //   (quota.discount - quota.totalPaidMora)
                         quota.fixedMora
-                      : quota.totalPaidMora,
+                      : quota.totalPaidMora - quota.fixedTotalPaidMora,
                   paid_mora_only: quota.payMoraOnly,
                   status_type: quota.fixedStatusType,
                 })
@@ -835,7 +836,7 @@ function generateDetail(object) {
     </div>
     <div style="display: flex; justify-content: space-between;">
       <div class="tran_container">
-      ${generateTrasactionsTemplate(object, "COMPOST")}
+      ${generateTrasactionsTemplate(object, "COMPOST", "DEFEATED")}
     </div>
     <div class="tran_amount tran_container">
       <span>${getTransactionAmount(object.amortization, "COMPOST")}</span>
@@ -845,22 +846,26 @@ function generateDetail(object) {
   }
 }
 
-function generateTrasactionsTemplate(object, status) {
+function generateTrasactionsTemplate(object, status, status2) {
   let arr = [];
 
   //let transactionTemplate = `<div></div>`;
   object.amortization
-    ?.filter((i) => i.statusType == status)
+    ?.filter(
+      (i) => i.statusType == status || (status2 && i.statusType == status2)
+    )
     .map((item, index) => {
       console.log("AMORTIZATION TO RECEIPT", item);
 
       switch (index) {
-        case object.amortization?.filter((i) => i.statusType == status).length -
-          2:
+        case object.amortization?.filter(
+          (i) => i.statusType == status || (status2 && i.statusType == status2)
+        ).length - 2:
           arr.push(`<span>${item.quotaNumber} y </span>`);
           break;
-        case object.amortization?.filter((i) => i.statusType == status).length -
-          1:
+        case object.amortization?.filter(
+          (i) => i.statusType == status || (status2 && i.statusType == status2)
+        ).length - 1:
           arr.push(`<span>${item.quotaNumber}</span>`);
           break;
 
