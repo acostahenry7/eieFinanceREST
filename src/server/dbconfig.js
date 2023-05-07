@@ -6,6 +6,10 @@
 //   password: "EDJKNOSOj6",
 //   db: "finance",
 //   dialect: "postgres",
+//   dialectOptions: {
+//     useUTC: false, // for reading from database
+//   },
+//   timezone: "-04:00",
 //   pool: {
 //     max: 10,
 //     min: 0,
@@ -20,6 +24,10 @@ module.exports = {
   password: "EDJKNOSOj6",
   db: "finance",
   dialect: "postgres",
+  dialectOptions: {
+    useUTC: false, // for reading from database
+  },
+  timezone: "-04:00",
   pool: {
     max: 10,
     min: 0,
@@ -36,6 +44,10 @@ module.exports = {
 //   password: "postgres",
 //   db: "finance",
 //   dialect: "postgres",
+//   dialectOptions: {
+//     useUTC: false, // for reading from database
+//   },
+//   timezone: "-04:00",
 //   pool: {
 //     max: 10,
 //     min: 0,

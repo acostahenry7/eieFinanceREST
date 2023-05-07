@@ -19,7 +19,7 @@ const { result } = require("lodash");
 controller.getPaymentsBySearchkey = async (req, res) => {
   const results = {};
 
-  console.log("DATE", Sequelize.NOW());
+  console.log("DATE", db.sequelize.fn("NOW"));
 
   try {
     const [client, metaClient] = await db.sequelize.query(
