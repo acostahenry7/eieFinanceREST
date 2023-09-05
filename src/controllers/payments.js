@@ -839,7 +839,11 @@ function generateDetail(object) {
       ${generateTrasactionsTemplate(object, "COMPOST", "DEFEATED")}
     </div>
     <div class="tran_amount tran_container">
-      <span>${getTransactionAmount(object.amortization, "COMPOST")}</span>
+      <span>${getTransactionAmount(
+        object.amortization,
+        "COMPOST",
+        "DEFEATED"
+      )}</span>
     </div>
     </div>
   </div>`;
@@ -984,9 +988,9 @@ function separatorPlace(num, fPos, sPos) {
   return result;
 }
 
-function getTransactionAmount(quotas, status) {
+function getTransactionAmount(quotas, status, status2) {
   let amount = quotas
-    .filter((i) => i.statusType == status)
+    .filter((i) => i.statusType == status || i.statusType == status2)
     .reduce((acc, i) => acc + i.totalPaid - i.fixedTotalPaid, 0);
 
   return significantFigure(
