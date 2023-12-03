@@ -773,7 +773,6 @@ function buildReceiptHtml(object) {
                       <li>Mora Pagada:</li>
                       <li style="background-color: black; color: white">Total Pagado:</li>
                       <li>Monto Recibido:</li>
-                      <li style="background-color: black; color: white">Devuelta:</li>
                     </div>
                     <div class="p-0 col-md-5">
                       <ul style="list-style: none; padding: 0; text-align: right;">
@@ -785,9 +784,6 @@ function buildReceiptHtml(object) {
                       )}</li>
                       <li>${significantFigure(
                         object.receivedAmount?.toFixed(2)
-                      )}</li>
-                      <li style="background-color: black; color: white">${significantFigure(
-                        object.cashBack?.toFixed(2)
                       )}</li>
                       </ul>
                     </div>
