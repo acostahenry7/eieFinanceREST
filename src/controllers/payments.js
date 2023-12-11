@@ -41,14 +41,14 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     var customerId = client[0].customer_id;
 
     const [loans, metaLoan] = await db.sequelize.query(
-      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance, l.number_of_installments as amount_of_quotas
+      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance, l.number_of_installments as amount_of_quotas,l.outlet_id
       from amortization a
       right join loan l on (l.loan_id = a.loan_id)
       join loan_application la on (la.loan_application_id = l.loan_application_id)
       where la.customer_id = '${customerId}'
       and a.outlet_id = l.outlet_id
       and l.status_type != 'PAID' 
-      group by l.loan_number_id, l.loan_id, l.number_of_installments`
+      group by l.loan_number_id, l.loan_id, l.number_of_installments, l.outlet_id`
     );
 
     var currentOuotas = [];
