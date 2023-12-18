@@ -98,6 +98,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 controller.getCustomerById = async (req, res) => {
   //console.log(req.params.id);
   const results = {};
+  console.log(req.body);
 
   const [customer, metadata] = await db.sequelize.query(
     `SELECT customer_id as key, identification, first_name, last_name, birth_date, email, p.name as province, m.name as municipality, 
