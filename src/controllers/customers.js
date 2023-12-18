@@ -34,21 +34,25 @@ controller.getCustomersByEmployeeId = async (req, res) => {
                     JOIN customer c on (la.customer_id = c.customer_id)`;
     } else {
       query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, l.loan_number_id, l.loan_id, l.loan_payment_address_id,
-                    lp.street, lp.street2, loan_situation, c.image_url, lb.name as business
-                    FROM loan_application la
-                    LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
-                    JOIN customer c on (c.customer_id = la.customer_id)
-                    join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
-                    join loan_payment_address lp on (lp.loan_id = l.loan_id)
-                    where lp.section_id in 	(select cast(section_id as int) 
-                                            from zone_neighbor_hood 
-                                            where zone_id in (select zone_id
-                                                              from employee_zone
-                                                              where employee_id='${req.params.employeeId}'
-                                                              and status_type = 'ENABLED'
-                                                              ))	
-                    and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
-                    order by c.first_name`;
+      lp.street, lp.street2, loan_situation, c.image_url, lb.name as business, lp.payment_address_type,
+      p.name as province, m.name as municipality, s.name as section
+      FROM loan_application la
+      LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
+      JOIN customer c on (c.customer_id = la.customer_id)
+      join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
+      join loan_payment_address lp on (lp.loan_id = l.loan_id and lp.payment_address_type = 'BUSINESS' or lp.loan_id = l.loan_id )
+      join province p on (p.province_id = lp.province_id)
+      join municipality m on (m.municipality_id = lp.municipality_id)
+        join section s on (s.section_id = lp.section_id)
+      where lp.section_id in      (select cast(section_id as int) 
+                              from zone_neighbor_hood 
+                              where zone_id in (select zone_id
+                                                from employee_zone
+                                                where employee_id='${req.params.employeeId}'
+                                                and status_type = 'ENABLED'
+                                                ))
+      and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
+      order by c.first_name`;
     }
 
     try {
@@ -85,6 +89,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 
       res.send(results);
     } catch (error) {
+      console.log(error);
       //console.log("Admin customers", error);
     }
   }
