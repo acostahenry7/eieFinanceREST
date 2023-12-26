@@ -61,6 +61,11 @@ db.appAccessControl = require("../models/AppAccessControl.model")(
   sequelize,
   Sequelize
 );
+db.generalDiary = require("../models/GeneralDiary.model")(sequelize, Sequelize);
+db.generalDiaryAccount = require("../models/GeneralDiaryAccount.model")(
+  sequelize,
+  Sequelize
+);
 
 db.loanApplication.belongsTo(db.customer, {
   foreignKey: "customer_id",

@@ -12,6 +12,11 @@ const Section = db.section;
 const Receipt = db.receipt;
 const ReceiptTransaction = db.receiptTransaction;
 const PaymentRouterDetail = db.paymentRouterDetail;
+
+//Accounting
+const GeneralDiary = db.generalDiary;
+const GeneralDiaryAccount = db.generalDiaryAccount;
+
 const fs = require("fs");
 const path = require("path");
 const { result } = require("lodash");
@@ -41,14 +46,15 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     var customerId = client[0].customer_id;
 
     const [loans, metaLoan] = await db.sequelize.query(
-      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance, l.number_of_installments as amount_of_quotas,l.outlet_id
+      `select l.loan_id, l.loan_number_id, count(quota_number) quota_amount, sum(amount_of_fee) as balance,
+      l.number_of_installments as amount_of_quotas,l.outlet_id, reverse(split_part(reverse(la.loan_type),'_',1)) as loan_type
       from amortization a
-      right join loan l on (l.loan_id = a.loan_id)
-      join loan_application la on (la.loan_application_id = l.loan_application_id)
-      where la.customer_id = '${customerId}'
-      and a.outlet_id = l.outlet_id
-      and l.status_type != 'PAID' 
-      group by l.loan_number_id, l.loan_id, l.number_of_installments, l.outlet_id`
+    right join loan l on (l.loan_id = a.loan_id)
+    join loan_application la on (la.loan_application_id = l.loan_application_id)
+    where la.customer_id = '${customerId}'
+    and a.outlet_id = l.outlet_id
+    and l.status_type != 'PAID' 
+    group by l.loan_number_id, l.loan_id, l.number_of_installments, l.outlet_id, la.loan_type`
     );
 
     var currentOuotas = [];
@@ -64,6 +70,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 
     //
     console.log(loanNumbers.join(","));
+
     const [quotas, metaQuota] = await db.sequelize
       .query(`select a.amortization_id, a.quota_number,((a.amount_of_fee + a.mora) - a.discount) - a.total_paid as quota_amount, a.amount_of_fee,
       l.loan_number_id, a.capital, a.interest, a.mora, a.total_paid, a.total_paid_mora, a.discount, a.status_type, a.paid  
@@ -400,9 +407,9 @@ controller.createPayment = async (req, res) => {
                                 }).then(async (section) => {
                                   const [zone, metadata] = await db.sequelize
                                     .query(`
-                                        select name 
-                                        from zone 
-                                        where zone_id = (select zone_id from zone_neighbor_hood where section_id = '${sectionId.dataValues.section_id}'  limit 1)`);
+                                      select name 
+                                      from zone 
+                                      where zone_id = (select zone_id from zone_neighbor_hood where section_id = '${sectionId.dataValues.section_id}'  limit 1)`);
 
                                   console.log(zone);
                                   results.loanDetails = {
@@ -420,11 +427,72 @@ controller.createPayment = async (req, res) => {
                                   };
 
                                   console.log("HI", results);
-                                  res.send(results);
+
+                                  let diaryBulkTransactions =
+                                    await generateDiaryTransactions(
+                                      req.body.amortization,
+                                      {
+                                        ...req.body.payment,
+                                        payment_id:
+                                          paymentDetail.dataValues.payment_id,
+                                      }
+                                    );
+                                  GeneralDiary.bulkCreate(diaryBulkTransactions)
+                                    .then(async (diary) => {
+                                      console.log("$$$ hace dias", diary);
+
+                                      let diaryAccountBulkTransactions =
+                                        await setAccountingSeat(
+                                          req.body.amortization,
+                                          {
+                                            ...req.body.payment,
+                                            payment_id:
+                                              paymentDetail.dataValues
+                                                .payment_id,
+                                          },
+                                          diary
+                                        );
+                                      GeneralDiaryAccount.bulkCreate(
+                                        diaryAccountBulkTransactions
+                                      )
+                                        .then((generalDiaryAccount) => {
+                                          res.send(results);
+                                        })
+                                        .catch((err) => {
+                                          console.log(err);
+                                        });
+                                    })
+                                    .catch((err) => {
+                                      console.log(err);
+                                    });
+
+                                  //res.send(results);
                                 });
                               });
                             })
                             .catch((err) => console.log(err));
+
+                          //Accounting
+
+                          //Registering at general_diary
+                          // GeneralDiary.create({
+                          //   general_diary_number_id: '',
+                          //   general_diary_type: 'AUTO',
+                          //   description: `Pago recibido Prestamo ${req.body.payment.loanType}`,
+                          //   comment: "Registro AUTO generado desde la APP",
+                          //   total: req.body.payment.pay,
+                          //   status_type: 'ENABLED',
+                          //   created_by: req.body.payment.createdBy,
+                          //   last_modified_by: req.body.payment.lastModifiedBy,
+                          //   accoun_number_id: null,
+                          //   outlet_id: req.body.payment.outletId,
+                          //   payment_id: paymentDetail.dataValues.payment_id,
+                          // })
+                          //   .then((generalDiary) => {
+
+                          //   })
+
+                          //Registering at general_diary_account
                         })
                         .catch((err) => {
                           console.log("Error creating receipt " + err);
@@ -586,6 +654,194 @@ function generateReceiptNumber() {
   const result = firstRandom + "-" + secondRandom;
 
   return result.toString();
+}
+
+async function generateDiaryTransactions(dues, payment) {
+  let rows = [];
+
+  let max = 0;
+  for (let i = 0; i < dues.length; i++) {
+    const [maxDiary] = await db.sequelize.query(
+      `select max(general_diary_number_id) as max_diary from general_diary`
+    );
+
+    console.log("MAX", max);
+    if (i > 0) {
+      if (
+        parseInt(maxDiary[0].max_diary) + 1 ==
+        parseInt(rows[i - 1].general_diary_number_id)
+      ) {
+        max = max + 1;
+      } else {
+        max = parseInt(maxDiary[0].max_diary) + 1;
+      }
+    } else {
+      max = parseInt(maxDiary[0].max_diary) + 1;
+    }
+
+    rows.push({
+      general_diary_number_id: max,
+      general_diary_type: "AUTO",
+      description: `Pago recibido Prestamo ${payment.loanType}`,
+      comment: "Registro AUTO generado desde la APP",
+      total: dues[i].totalPaid - dues[i].fixedTotalPaid,
+      status_type: "ENABLED",
+      created_by: payment.createdBy,
+      last_modified_by: payment.lastModifiedBy,
+      accoun_number_id: null,
+      outlet_id: "4a812a14-f46d-4a99-8d88-c1f14ea419f4", // payment.outletId,
+      payment_id: payment.payment_id,
+    });
+  }
+
+  return rows;
+}
+async function setAccountingSeat(dues, payment, diaryIds) {
+  let rows = [];
+
+  const [accountCatalog] = await db.sequelize.query(
+    `SELECT *
+    FROM account_catalog
+    WHERE outlet_id = '4a812a14-f46d-4a99-8d88-c1f14ea419f4'
+    ORDER BY number`
+  );
+
+  const [accounts] = await db.sequelize.query(
+    `SELECT account_determination_id,transaction_account, split_part(transaction_account,'_',1) account_target, 
+    ad.account_catalog_id, ad.status_type, ad.outlet_id, ad.name, ac.number, ac.name
+    FROM account_determination ad
+    JOIN account_catalog ac ON (ad.account_catalog_id = ac.account_catalog_id)
+    WHERE ad.outlet_id = '4a812a14-f46d-4a99-8d88-c1f14ea419f4'
+    AND  split_part(transaction_account,'_',1) IN ('${payment.loanType}','GENERAL', 'LATE')`
+  );
+
+  for (let i = 0; i < dues.length; i++) {
+    accounts.map((account) => {
+      let debit = 0;
+      let credit = 0;
+
+      switch (account.number[0]) {
+        case "4":
+          if (account.name.toLowerCase().includes("mora")) {
+            if (dues[i].totalPaidMora > dues[i].mora) {
+              credit = dues[i].mora;
+            } else {
+              if (dues[i].totalPaidMora == dues[i].mora) {
+                credit = dues[i].mora;
+              } else {
+                credit = dues[i].totalPaidMora - dues[i].fixedTotalPaidMora;
+              }
+            }
+          } else {
+            if (dues[i].totalPaid > dues[i].interest) {
+              credit = dues[i].interest;
+            } else {
+              if (dues[i].totalPaid == dues[i].interest) {
+                credit = dues[i].interest;
+              } else {
+                credit = dues[i].totalPaid - dues[i].fixedTotalPaid;
+              }
+            }
+          }
+          break;
+        case "2":
+          if (dues[i].totalPaid > dues[i].interest) {
+            debit = dues[i].interest;
+          } else {
+            if (dues[i].totalPaid == dues[i].interest) {
+              debit = dues[i].interest;
+            } else {
+              debit = dues[i].totalPaid - dues[i].fixedTotalPaid;
+            }
+          }
+          break;
+        case "1":
+          if (account.name.toLowerCase().includes("caja")) {
+            if (dues[i].totalPaid > dues[i].quota_amount) {
+              debit = dues[i].amountOfFee;
+            } else {
+              if (dues[i].totalPaid == dues[i].quota_amount) {
+                debit = dues[i].amountOfFee;
+              } else {
+                debit = dues[i].totalPaid;
+              }
+            }
+          } else {
+            if (dues[i].totalPaid > dues[i].quota_amount) {
+              credit = dues[i].amountOfFee;
+            } else {
+              if (dues[i].totalPaid == dues[i].quota_amount) {
+                credit = dues[i].amountOfFee;
+              } else {
+                credit = dues[i].totalPaid;
+              }
+            }
+          }
+          break;
+
+        default:
+          break;
+      }
+
+      rows.push({
+        general_diary_id: diaryIds[i].dataValues.general_diary_id,
+        account_catalog_id: account.account_catalog_id,
+        debit,
+        credit,
+        status_type: "ENABLED",
+        created_by: payment.createdBy,
+        last_modified_by: payment.lastModifiedBy,
+        reconcile: false,
+      });
+    });
+
+    // for (let o = 0; o < rows.length; o++) {
+    //   let accountsToUpdate = [];
+
+    //   // console.log(accountCatalog);
+    //   let parents = getParentAccounts(rows[o], accountCatalog);
+
+    //   console.log(
+    //     rows[o].account_catalog_id,
+    //     parents.map(({ account_catalog_id, name }) => ({
+    //       account_catalog_id,
+    //       name,
+    //     }))
+    //   );
+
+    //   // await db.sequelize.query(`
+    //   // update account_catalog
+    //   // set balance =
+    //   // where account_catalog_id = '${rows[o].account_catalog_id}'`)
+    // }
+  }
+  return rows;
+}
+
+function getParentAccounts(account, catalog) {
+  let accounts = [];
+
+  let currentAccount = catalog.filter(
+    (a) => a.account_catalog_id === account.account_catalog_id
+  )[0];
+
+  let parent = catalog.filter(
+    (catalogAccount) =>
+      currentAccount.control_account == catalogAccount.account_catalog_id
+  );
+
+  console.log(parent);
+
+  if (parent.length > 0) {
+    if (parent[0].control_account != null) {
+      accounts.push(getParentAccounts(parent[0], catalog));
+    }
+    // } else {
+    //   accounts.push(parent[0]);
+    // }
+  }
+
+  return accounts;
 }
 
 function getPaymentTotal(amortization) {

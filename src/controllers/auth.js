@@ -8,7 +8,7 @@ const Outlet = db.outlet;
 const AppAccessControl = db.appAccessControl;
 const bcrypt = require("bcryptjs");
 
-const APPVERSION = "1.20";
+const APPVERSION = "1.21";
 
 let tries = 0;
 let lockedUsers = [];
