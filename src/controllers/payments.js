@@ -437,36 +437,36 @@ controller.createPayment = async (req, res) => {
                                           paymentDetail.dataValues.payment_id,
                                       }
                                     );
-                                  GeneralDiary.bulkCreate(diaryBulkTransactions)
-                                    .then(async (diary) => {
-                                      console.log("$$$ hace dias", diary);
+                                  // GeneralDiary.bulkCreate(diaryBulkTransactions)
+                                  //   .then(async (diary) => {
+                                  //     console.log("$$$ hace dias", diary);
 
-                                      let diaryAccountBulkTransactions =
-                                        await setAccountingSeat(
-                                          req.body.amortization,
-                                          {
-                                            ...req.body.payment,
-                                            payment_id:
-                                              paymentDetail.dataValues
-                                                .payment_id,
-                                          },
-                                          diary
-                                        );
-                                      GeneralDiaryAccount.bulkCreate(
-                                        diaryAccountBulkTransactions
-                                      )
-                                        .then((generalDiaryAccount) => {
-                                          res.send(results);
-                                        })
-                                        .catch((err) => {
-                                          console.log(err);
-                                        });
-                                    })
-                                    .catch((err) => {
-                                      console.log(err);
-                                    });
+                                  //     let diaryAccountBulkTransactions =
+                                  //       await setAccountingSeat(
+                                  //         req.body.amortization,
+                                  //         {
+                                  //           ...req.body.payment,
+                                  //           payment_id:
+                                  //             paymentDetail.dataValues
+                                  //               .payment_id,
+                                  //         },
+                                  //         diary
+                                  //       );
+                                  //     GeneralDiaryAccount.bulkCreate(
+                                  //       diaryAccountBulkTransactions
+                                  //     )
+                                  //       .then((generalDiaryAccount) => {
+                                  //         res.send(results);
+                                  //       })
+                                  //       .catch((err) => {
+                                  //         console.log(err);
+                                  //       });
+                                  //   })
+                                  //   .catch((err) => {
+                                  //     console.log(err);
+                                  //   });
 
-                                  //res.send(results);
+                                  res.send(results);
                                 });
                               });
                             })
@@ -679,7 +679,13 @@ async function generateDiaryTransactions(dues, payment) {
       max = parseInt(maxDiary[0].max_diary) + 1;
     }
 
-    await db.sequelize.query(`insert into general_diary_number values(${max})`);
+    try {
+      await db.sequelize.query(
+        `insert into general_diary_number values(${max})`
+      );
+    } catch (error) {
+      console.log(error);
+    }
 
     rows.push({
       general_diary_number_id: max,
