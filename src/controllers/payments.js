@@ -679,6 +679,8 @@ async function generateDiaryTransactions(dues, payment) {
       max = parseInt(maxDiary[0].max_diary) + 1;
     }
 
+    await db.sequelize.query(`insert into general_diary_number values(${max})`);
+
     rows.push({
       general_diary_number_id: max,
       general_diary_type: "AUTO",
