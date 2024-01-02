@@ -767,12 +767,21 @@ async function setAccountingSeat(dues, payment, diaryIds) {
         case "1":
           if (account.name.toLowerCase().includes("caja")) {
             if (dues[i].totalPaid > dues[i].quota_amount) {
-              debit = dues[i].amountOfFee + dues[i].totalPaidMora;
+              debit =
+                dues[i].amountOfFee +
+                dues[i].totalPaidMora -
+                dues[i].fixedTotalPaidMora;
             } else {
               if (dues[i].totalPaid == dues[i].quota_amount) {
-                debit = dues[i].amountOfFee + dues[i].totalPaidMora;
+                debit =
+                  dues[i].amountOfFee +
+                  dues[i].totalPaidMora -
+                  dues[i].fixedTotalPaidMora;
               } else {
-                debit = dues[i].totalPaid + dues[i].totalPaidMora;
+                debit =
+                  dues[i].totalPaid +
+                  dues[i].totalPaidMora -
+                  dues[i].fixedTotalPaidMora;
               }
             }
           } else {
