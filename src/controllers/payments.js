@@ -14,6 +14,7 @@ const ReceiptTransaction = db.receiptTransaction;
 const PaymentRouterDetail = db.paymentRouterDetail;
 
 //Accounting
+const GeneralDiaryNumber = db.generalDiaryNumber;
 const GeneralDiary = db.generalDiary;
 const GeneralDiaryAccount = db.generalDiaryAccount;
 
@@ -53,7 +54,8 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     join loan_application la on (la.loan_application_id = l.loan_application_id)
     where la.customer_id = '${customerId}'
     and a.outlet_id = l.outlet_id
-    and l.status_type != 'PAID' 
+    and l.status_type not in ('PAID', 'REFINANCE', 'DELETE')
+    and l.loan_situation not in ('SEIZED')
     group by l.loan_number_id, l.loan_id, l.number_of_installments, l.outlet_id, la.loan_type`
     );
 
@@ -146,6 +148,10 @@ controller.createPayment = async (req, res) => {
 
   const [amountOfQuotas] = await db.sequelize.query(
     `select number_of_installments as "amountOfQuotas" from loan where loan_id = '${req.body.payment.loanId}'`
+  );
+
+  const [isAccountingEnabled] = await db.sequelize.query(
+    `select activation_date from outlet where outlet_id = '${req.body.payment.outletId}'`
   );
 
   var receiptPaymentId = "";
@@ -426,73 +432,69 @@ controller.createPayment = async (req, res) => {
                                     //zone: zone[0].name,
                                   };
 
-                                  console.log("HI", results);
+                                  //----------------Accounting--------------
+                                  if (
+                                    isAccountingEnabled[0].activation_date !=
+                                    null
+                                  ) {
+                                    //Reservation of general_diary_number_id
+                                    let maxDiaryNumber =
+                                      await getLastDiaryNumber(
+                                        req.body.amortization
+                                      );
 
-                                  let diaryBulkTransactions =
-                                    await generateDiaryTransactions(
-                                      req.body.amortization,
-                                      {
-                                        ...req.body.payment,
-                                        payment_id:
-                                          paymentDetail.dataValues.payment_id,
-                                      }
+                                    console.log(
+                                      "GENERAL DIARY ID FROM GENERAL DIARY",
+                                      maxDiaryNumber
                                     );
-                                  // GeneralDiary.bulkCreate(diaryBulkTransactions)
-                                  //   .then(async (diary) => {
-                                  //     console.log("$$$ hace dias", diary);
 
-                                  //     let diaryAccountBulkTransactions =
-                                  //       await setAccountingSeat(
-                                  //         req.body.amortization,
-                                  //         {
-                                  //           ...req.body.payment,
-                                  //           payment_id:
-                                  //             paymentDetail.dataValues
-                                  //               .payment_id,
-                                  //         },
-                                  //         diary
-                                  //       );
-                                  //     GeneralDiaryAccount.bulkCreate(
-                                  //       diaryAccountBulkTransactions
-                                  //     )
-                                  //       .then((generalDiaryAccount) => {
-                                  //         res.send(results);
-                                  //       })
-                                  //       .catch((err) => {
-                                  //         console.log(err);
-                                  //       });
-                                  //   })
-                                  //   .catch((err) => {
-                                  //     console.log(err);
-                                  //   });
+                                    let diaryBulkTransactions =
+                                      await generateDiaryTransactions(
+                                        maxDiaryNumber,
+                                        req.body.amortization,
+                                        {
+                                          ...req.body.payment,
+                                          payment_id:
+                                            paymentDetail.dataValues.payment_id,
+                                        }
+                                      );
+                                    GeneralDiary.bulkCreate(
+                                      diaryBulkTransactions
+                                    )
+                                      .then(async (diary) => {
+                                        console.log("$$$ hace dias", diary);
 
-                                  res.send(results);
+                                        let diaryAccountBulkTransactions =
+                                          await setAccountingSeat(
+                                            req.body.amortization,
+                                            {
+                                              ...req.body.payment,
+                                              payment_id:
+                                                paymentDetail.dataValues
+                                                  .payment_id,
+                                            },
+                                            diary
+                                          );
+                                        GeneralDiaryAccount.bulkCreate(
+                                          diaryAccountBulkTransactions
+                                        )
+                                          .then((generalDiaryAccount) => {
+                                            res.send(results);
+                                          })
+                                          .catch((err) => {
+                                            console.log(err);
+                                          });
+                                      })
+                                      .catch((err) => {
+                                        console.log(err);
+                                      });
+                                  } else {
+                                    res.send(results);
+                                  }
                                 });
                               });
                             })
                             .catch((err) => console.log(err));
-
-                          //Accounting
-
-                          //Registering at general_diary
-                          // GeneralDiary.create({
-                          //   general_diary_number_id: '',
-                          //   general_diary_type: 'AUTO',
-                          //   description: `Pago recibido Prestamo ${req.body.payment.loanType}`,
-                          //   comment: "Registro AUTO generado desde la APP",
-                          //   total: req.body.payment.pay,
-                          //   status_type: 'ENABLED',
-                          //   created_by: req.body.payment.createdBy,
-                          //   last_modified_by: req.body.payment.lastModifiedBy,
-                          //   accoun_number_id: null,
-                          //   outlet_id: req.body.payment.outletId,
-                          //   payment_id: paymentDetail.dataValues.payment_id,
-                          // })
-                          //   .then((generalDiary) => {
-
-                          //   })
-
-                          //Registering at general_diary_account
                         })
                         .catch((err) => {
                           console.log("Error creating receipt " + err);
@@ -656,39 +658,38 @@ function generateReceiptNumber() {
   return result.toString();
 }
 
-async function generateDiaryTransactions(dues, payment) {
+async function getLastDiaryNumber(amortization) {
+  let maxDiaryNumberCol = [];
+  let [maxDiaryNumber, meta] = await db.sequelize.query(
+    `select max(general_diary_number_id) from general_diary_number`
+  );
+
+  // console.log("MAX DIARY NUMBER", maxDiaryNumber[0].max);
+  amortization.forEach((item) => {
+    maxDiaryNumberCol.push({
+      general_diary_number_id: maxDiaryNumber[0].max + 1,
+    });
+  });
+
+  return GeneralDiaryNumber.bulkCreate(maxDiaryNumberCol)
+    .then((res) => {
+      return res[0].dataValues.general_diary_number_id;
+    })
+    .catch((err) => {
+      console.error("ERROR UNIQUE ###############", err.errors[0].type);
+      if (err.errors[0].type.toString().includes("unique")) {
+        getLastDiaryNumber(amortization);
+      }
+    });
+}
+
+async function generateDiaryTransactions(maxDiaryNumber, dues, payment) {
   let rows = [];
 
-  let max = 0;
   for (let i = 0; i < dues.length; i++) {
-    const [maxDiary] = await db.sequelize.query(
-      `select max(general_diary_number_id) as max_diary from general_diary`
-    );
-
-    console.log("MAX", max);
-    if (i > 0) {
-      if (
-        parseInt(maxDiary[0].max_diary) + 1 ==
-        parseInt(rows[i - 1].general_diary_number_id)
-      ) {
-        max = max + 1;
-      } else {
-        max = parseInt(maxDiary[0].max_diary) + 1;
-      }
-    } else {
-      max = parseInt(maxDiary[0].max_diary) + 1;
-    }
-
-    try {
-      await db.sequelize.query(
-        `insert into general_diary_number values(${max})`
-      );
-    } catch (error) {
-      console.log(error);
-    }
-
     rows.push({
-      general_diary_number_id: max,
+      general_diary_number_id:
+        maxDiaryNumber || (await getLastDiaryNumber(dues)),
       general_diary_type: "AUTO",
       description: `Pago recibido Prestamo ${payment.loanType}`,
       comment: "Registro AUTO generado desde la APP",

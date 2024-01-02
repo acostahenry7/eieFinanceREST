@@ -40,7 +40,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
       LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
       JOIN customer c on (c.customer_id = la.customer_id)
       join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
-      join loan_payment_address lp on (lp.loan_id = l.loan_id and lp.payment_address_type = 'BUSINESS' or lp.loan_id = l.loan_id )
+      join loan_payment_address lp on (lp.loan_id = l.loan_id and lp.payment_address_type in ('BUSINESS','CUSTOMER' ) )
       join province p on (p.province_id = lp.province_id)
       join municipality m on (m.municipality_id = lp.municipality_id)
         join section s on (s.section_id = lp.section_id)

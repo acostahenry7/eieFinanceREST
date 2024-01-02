@@ -61,6 +61,10 @@ db.appAccessControl = require("../models/AppAccessControl.model")(
   sequelize,
   Sequelize
 );
+db.generalDiaryNumber = require("../models/GeneralDiaryNumber.model")(
+  sequelize,
+  Sequelize
+);
 db.generalDiary = require("../models/GeneralDiary.model")(sequelize, Sequelize);
 db.generalDiaryAccount = require("../models/GeneralDiaryAccount.model")(
   sequelize,
