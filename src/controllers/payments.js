@@ -711,7 +711,7 @@ async function setAccountingSeat(dues, payment, diaryIds) {
   const [accountCatalog] = await db.sequelize.query(
     `SELECT *
     FROM account_catalog
-    WHERE outlet_id = '4a812a14-f46d-4a99-8d88-c1f14ea419f4'
+    WHERE outlet_id = '${payment.outletId}'
     ORDER BY number`
   );
 
@@ -767,12 +767,12 @@ async function setAccountingSeat(dues, payment, diaryIds) {
         case "1":
           if (account.name.toLowerCase().includes("caja")) {
             if (dues[i].totalPaid > dues[i].quota_amount) {
-              debit = dues[i].amountOfFee;
+              debit = dues[i].amountOfFee + dues[i].totalPaidMora;
             } else {
               if (dues[i].totalPaid == dues[i].quota_amount) {
-                debit = dues[i].amountOfFee;
+                debit = dues[i].amountOfFee + dues[i].totalPaidMora;
               } else {
-                debit = dues[i].totalPaid;
+                debit = dues[i].totalPaid + dues[i].totalPaidMora;
               }
             }
           } else {

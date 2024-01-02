@@ -116,7 +116,8 @@ controller.getCustomerById = async (req, res) => {
                                         from loan_application
                                         where customer_id = '${req.body.id}')
           and outlet_id=(select outlet_id from employee where employee_id='${req.body.employeeId}')
-          and status_type != 'PAID'`
+          status_type not in ('PAID', 'REFINANCE', 'DELETE')
+          loan_situation not in ('SEIZED')`
   );
 
   results.customerInfo = customer[0];
