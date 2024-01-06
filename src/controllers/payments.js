@@ -438,19 +438,20 @@ controller.createPayment = async (req, res) => {
                                     null
                                   ) {
                                     //Reservation of general_diary_number_id
-                                    let maxDiaryNumber =
-                                      await getLastDiaryNumber(
+
+                                    let maxDiaryNumberCol =
+                                      await getLastDiaryNumbers(
                                         req.body.amortization
                                       );
 
                                     console.log(
                                       "GENERAL DIARY ID FROM GENERAL DIARY",
-                                      maxDiaryNumber
+                                      maxDiaryNumberCol
                                     );
 
                                     let diaryBulkTransactions =
                                       await generateDiaryTransactions(
-                                        maxDiaryNumber,
+                                        maxDiaryNumberCol,
                                         req.body.amortization,
                                         {
                                           ...req.body.payment,
@@ -658,42 +659,53 @@ function generateReceiptNumber() {
   return result.toString();
 }
 
-async function getLastDiaryNumber(amortization) {
-  let maxDiaryNumberCol = [];
-  let [maxDiaryNumber, meta] = await db.sequelize.query(
-    `select max(general_diary_number_id) from general_diary_number`
-  );
+async function getLastDiaryNumbers(amortization) {
+  try {
+    let selectString = "SELECT ";
 
-  // console.log("MAX DIARY NUMBER", maxDiaryNumber[0].max);
-  amortization.forEach((item) => {
-    maxDiaryNumberCol.push({
-      general_diary_number_id: maxDiaryNumber[0].max + 1,
-    });
-  });
-
-  return GeneralDiaryNumber.bulkCreate(maxDiaryNumberCol)
-    .then((res) => {
-      return res[0].dataValues.general_diary_number_id;
-    })
-    .catch((err) => {
-      console.error("ERROR UNIQUE ###############", err.errors[0].type);
-      if (err.errors[0].type.toString().includes("unique")) {
-        getLastDiaryNumber(amortization);
+    for (let a = 0; a < amortization.length; a++) {
+      if (a > 0) {
+        selectString += ", \n";
       }
-    });
+
+      selectString += `nextval('general_diary_number_general_diary_number_id_seq'::regclass) as "${
+        a + 1
+      }"`;
+    }
+
+    let [maxDiaryNumberCol, meta] = await db.sequelize.query(selectString);
+
+    console.log(
+      "GENERAL DIARY NUMBER SEQUENCE> ",
+      Object.values(maxDiaryNumberCol[0])
+    );
+
+    let result = Object.values(maxDiaryNumberCol[0]);
+    let generealDiaryNumberBulk = result.map((item) => ({
+      general_diary_number_id: parseInt(item),
+    }));
+
+    await GeneralDiaryNumber.bulkCreate(generealDiaryNumberBulk);
+    return result;
+  } catch (error) {
+    console.log("ERROR % GENERAL DIARY NUMBER SEQUENCE", error);
+  }
 }
 
-async function generateDiaryTransactions(maxDiaryNumber, dues, payment) {
+async function generateDiaryTransactions(maxDiaryNumbers, dues, payment) {
   let rows = [];
 
   for (let i = 0; i < dues.length; i++) {
     rows.push({
-      general_diary_number_id:
-        maxDiaryNumber || (await getLastDiaryNumber(dues)),
+      general_diary_number_id: maxDiaryNumbers[i],
       general_diary_type: "AUTO",
       description: `Pago recibido Prestamo ${payment.loanType}`,
       comment: "Registro AUTO generado desde la APP",
-      total: dues[i].totalPaid - dues[i].fixedTotalPaid,
+      total:
+        dues[i].totalPaid +
+        dues[i].totalPaidMora -
+        dues[i].fixedTotalPaid -
+        dues[i].fixedTotalPaidMora,
       status_type: "ENABLED",
       created_by: payment.createdBy,
       last_modified_by: payment.lastModifiedBy,
@@ -715,13 +727,20 @@ async function setAccountingSeat(dues, payment, diaryIds) {
     ORDER BY number`
   );
 
+  const isPayingMora =
+    dues.filter((due) => due.totalPaidMora - due.fixedTotalPaidMora > 0)
+      .length > 0
+      ? true
+      : false;
   const [accounts] = await db.sequelize.query(
     `SELECT account_determination_id,transaction_account, split_part(transaction_account,'_',1) account_target, 
     ad.account_catalog_id, ad.status_type, ad.outlet_id, ad.name, ac.number, ac.name
     FROM account_determination ad
     JOIN account_catalog ac ON (ad.account_catalog_id = ac.account_catalog_id)
     WHERE ad.outlet_id = '4a812a14-f46d-4a99-8d88-c1f14ea419f4'
-    AND  split_part(transaction_account,'_',1) IN ('${payment.loanType}','GENERAL', 'LATE')`
+    AND  split_part(transaction_account,'_',1) IN ('${
+      payment.loanType
+    }','GENERAL' ${isPayingMora ? ", 'LATE'" : ""})`
   );
 
   for (let i = 0; i < dues.length; i++) {
@@ -732,21 +751,16 @@ async function setAccountingSeat(dues, payment, diaryIds) {
       switch (account.number[0]) {
         case "4":
           if (account.name.toLowerCase().includes("mora")) {
-            if (dues[i].totalPaidMora > dues[i].mora) {
-              credit = dues[i].mora;
-            } else {
-              if (dues[i].totalPaidMora == dues[i].mora) {
-                credit = dues[i].mora;
-              } else {
-                credit = dues[i].totalPaidMora - dues[i].fixedTotalPaidMora;
-              }
-            }
+            credit = dues[i].totalPaidMora - dues[i].fixedTotalPaidMora;
           } else {
-            if (dues[i].totalPaid > dues[i].interest) {
-              credit = dues[i].interest;
+            if (dues[i].fixedTotalPaid >= dues[i].interest) {
+              credit = 0;
             } else {
-              if (dues[i].totalPaid == dues[i].interest) {
-                credit = dues[i].interest;
+              if (
+                dues[i].totalPaid - dues[i].fixedTotalPaid >=
+                dues[i].interest - dues[i].fixedTotalPaid
+              ) {
+                credit = dues[i].interest - dues[i].fixedTotalPaid;
               } else {
                 credit = dues[i].totalPaid - dues[i].fixedTotalPaid;
               }
@@ -754,11 +768,14 @@ async function setAccountingSeat(dues, payment, diaryIds) {
           }
           break;
         case "2":
-          if (dues[i].totalPaid > dues[i].interest) {
-            debit = dues[i].interest;
+          if (dues[i].fixedTotalPaid >= dues[i].interest) {
+            debit = 0;
           } else {
-            if (dues[i].totalPaid == dues[i].interest) {
-              debit = dues[i].interest;
+            if (
+              dues[i].totalPaid - dues[i].fixedTotalPaid >=
+              dues[i].interest - dues[i].fixedTotalPaid
+            ) {
+              debit = dues[i].interest - dues[i].fixedTotalPaid;
             } else {
               debit = dues[i].totalPaid - dues[i].fixedTotalPaid;
             }
@@ -766,34 +783,13 @@ async function setAccountingSeat(dues, payment, diaryIds) {
           break;
         case "1":
           if (account.name.toLowerCase().includes("caja")) {
-            if (dues[i].totalPaid > dues[i].quota_amount) {
-              debit =
-                dues[i].amountOfFee +
-                dues[i].totalPaidMora -
-                dues[i].fixedTotalPaidMora;
-            } else {
-              if (dues[i].totalPaid == dues[i].quota_amount) {
-                debit =
-                  dues[i].amountOfFee +
-                  dues[i].totalPaidMora -
-                  dues[i].fixedTotalPaidMora;
-              } else {
-                debit =
-                  dues[i].totalPaid +
-                  dues[i].totalPaidMora -
-                  dues[i].fixedTotalPaidMora;
-              }
-            }
+            debit =
+              dues[i].totalPaid -
+              dues[i].fixedTotalPaid +
+              dues[i].totalPaidMora -
+              dues[i].fixedTotalPaidMora;
           } else {
-            if (dues[i].totalPaid > dues[i].quota_amount) {
-              credit = dues[i].amountOfFee;
-            } else {
-              if (dues[i].totalPaid == dues[i].quota_amount) {
-                credit = dues[i].amountOfFee;
-              } else {
-                credit = dues[i].totalPaid;
-              }
-            }
+            credit = dues[i].totalPaid - dues[i].fixedTotalPaid;
           }
           break;
 
