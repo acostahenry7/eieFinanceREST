@@ -434,7 +434,7 @@ controller.createPayment = async (req, res) => {
 
                                   //----------------Accounting--------------
                                   if (
-                                    isAccountingEnabled[0].activation_date !=
+                                    isAccountingEnabled[0].activation_date ==
                                     null
                                   ) {
                                     //Reservation of general_diary_number_id
@@ -455,6 +455,10 @@ controller.createPayment = async (req, res) => {
                                         req.body.amortization,
                                         {
                                           ...req.body.payment,
+                                          customer:
+                                            currentCustomer[0].first_name +
+                                            " " +
+                                            currentCustomer[0].last_name,
                                           payment_id:
                                             paymentDetail.dataValues.payment_id,
                                         }
@@ -699,7 +703,7 @@ async function generateDiaryTransactions(maxDiaryNumbers, dues, payment) {
     rows.push({
       general_diary_number_id: maxDiaryNumbers[i],
       general_diary_type: "AUTO",
-      description: `Pago recibido Prestamo ${payment.loanType}`,
+      description: `Pago recibido Prestamo ${payment.loanType} Préstamo No. ${payment.loanNumber} - ${payment.customer}`,
       comment: "Registro AUTO generado desde la APP",
       total:
         dues[i].totalPaid +
@@ -710,7 +714,7 @@ async function generateDiaryTransactions(maxDiaryNumbers, dues, payment) {
       created_by: payment.createdBy,
       last_modified_by: payment.lastModifiedBy,
       accoun_number_id: null,
-      outlet_id: "4a812a14-f46d-4a99-8d88-c1f14ea419f4", // payment.outletId,
+      outlet_id: payment.outletId,
       payment_id: payment.payment_id,
     });
   }
@@ -737,7 +741,7 @@ async function setAccountingSeat(dues, payment, diaryIds) {
     ad.account_catalog_id, ad.status_type, ad.outlet_id, ad.name, ac.number, ac.name
     FROM account_determination ad
     JOIN account_catalog ac ON (ad.account_catalog_id = ac.account_catalog_id)
-    WHERE ad.outlet_id = '4a812a14-f46d-4a99-8d88-c1f14ea419f4'
+    WHERE ad.outlet_id = '${payment.outletId}'
     AND  split_part(transaction_account,'_',1) IN ('${
       payment.loanType
     }','GENERAL' ${isPayingMora ? ", 'LATE'" : ""})`
