@@ -434,7 +434,7 @@ controller.createPayment = async (req, res) => {
 
                                   //----------------Accounting--------------
                                   if (
-                                    isAccountingEnabled[0].activation_date ==
+                                    isAccountingEnabled[0].activation_date !=
                                     null
                                   ) {
                                     //Reservation of general_diary_number_id
