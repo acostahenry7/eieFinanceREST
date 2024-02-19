@@ -11,6 +11,10 @@ const paymentController = require("../controllers/payments");
 const imageController = require("../controllers/camera");
 const receiptController = require("../controllers/receipt");
 const syncController = require("../controllers/sync");
+
+//Proceso temporal
+const procesoTransaccionesContablesCtrl = require("../controllers/proceso_actualizacion_accounting");
+
 const multer = require("multer");
 
 const db = require("../models/index");
@@ -59,6 +63,11 @@ module.exports = (app, storage) => {
       message: "success!",
     });
   });
+
+  app.get(
+    "/api/payment/get-seats",
+    procesoTransaccionesContablesCtrl.procesoActualizarAsientosContables
+  );
 
   // app.post("/api/upload/receipt", async (req, res) => {
   //   // var filePath = path.join(__dirname, "../assets/res/receipts/");

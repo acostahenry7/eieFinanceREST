@@ -29,6 +29,10 @@ module.exports = (sequelize, Sequelize) => {
       created_by: {
         type: Sequelize.STRING,
       },
+      general_diary_date: {
+        type: Sequelize.DATE,
+        defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
+      },
       created_date: {
         type: Sequelize.DATE,
         defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
