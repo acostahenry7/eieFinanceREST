@@ -74,7 +74,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     console.log(loanNumbers.join(","));
 
     const [quotas, metaQuota] = await db.sequelize
-      .query(`select a.amortization_id, a.quota_number,((a.amount_of_fee + a.mora) - a.discount) - a.total_paid as quota_amount, a.amount_of_fee,
+      .query(`select a.amortization_id, a.quota_number,((a.amount_of_fee + a.mora) - a.discount) - (a.total_paid + a.total_paid_mora) as quota_amount, a.amount_of_fee,
       l.loan_number_id, a.capital, a.interest, a.mora, a.total_paid, a.total_paid_mora, a.discount, a.status_type, a.paid  
             from amortization a
             left join loan l on (a.loan_id = l.loan_id)
