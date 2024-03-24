@@ -125,7 +125,7 @@ controller.createPayment = async (req, res) => {
   );
 
   const [maxQuota] = await db.sequelize.query(
-    `select max(quota_number) as quota from amortization where loan_id = '${req.body.payment.loanId}'`
+    `select max(quota_number) as quota from amortization where loan_id = '${req.body.payment.loanId}' and status_type not like 'DELETE'`
   );
 
   const [currentLoanId] = await db.sequelize.query(
@@ -202,29 +202,22 @@ controller.createPayment = async (req, res) => {
                     loan_id: req.body.payment.loanId,
                   },
                 }
-              ).then(() => {
-                console.log("hi");
+              ).then(async () => {
+                console.log("LOAN PAID");
+                await db.sequelize.query(
+                  `UPDATE customer_loan SET status_type='PAID' WHERE loan_id = '${req.body.payment.loanId}'`
+                );
               });
             }
             Amortization.update(
               {
                 paid: quota.paid,
-                status_type:
-                  quota.fixedStatusType == "DEFEATED" &&
-                  quota.statusType != "PAID"
-                    ? "DEFEATED"
-                    : quota.statusType,
+                status_type: quota.statusType,
                 //total_paid: quota.totalPaid,
                 total_paid: quota.totalPaid - quota.discount,
                 //last_modified_by: req.body.payment.lastModifiedBy,
                 mora: quota.mora,
-                total_paid_mora:
-                  quota.discount > 0
-                    ? quota.fixedMora
-                    : // ? quota.totalPaidMora +
-                      //   (quota.discount - quota.totalPaidMora)
-                      quota.totalPaidMora,
-                //execute_process_mora: quota.executeProcessMora,
+                total_paid_mora: quota.totalPaidMora,
               },
               {
                 where: {
