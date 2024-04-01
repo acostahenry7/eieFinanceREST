@@ -473,6 +473,10 @@ controller.createPayment = async (req, res) => {
                                             },
                                             diary
                                           );
+                                        console.log(
+                                          "GENERAL DIARY ACCOUNT\n",
+                                          diaryAccountBulkTransactions
+                                        );
                                         GeneralDiaryAccount.bulkCreate(
                                           diaryAccountBulkTransactions
                                         )
@@ -658,17 +662,17 @@ function generateReceiptNumber() {
 
 async function getLastDiaryNumbers(amortization) {
   try {
-    let selectString = "SELECT ";
+    let selectString = `SELECT nextval('general_diary_number_general_diary_number_id_seq'::regclass) as "1" `;
 
-    for (let a = 0; a < amortization.length; a++) {
-      if (a > 0) {
-        selectString += ", \n";
-      }
+    // for (let a = 0; a < amortization.length; a++) {
+    //   if (a > 0) {
+    //     selectString += ", \n";
+    //   }
 
-      selectString += `nextval('general_diary_number_general_diary_number_id_seq'::regclass) as "${
-        a + 1
-      }"`;
-    }
+    //   selectString += `nextval('general_diary_number_general_diary_number_id_seq'::regclass) as "${
+    //     a + 1
+    //   }"`;
+    // }
 
     let [maxDiaryNumberCol, meta] = await db.sequelize.query(selectString);
 
@@ -692,30 +696,45 @@ async function getLastDiaryNumbers(amortization) {
 async function generateDiaryTransactions(maxDiaryNumbers, dues, payment) {
   let rows = [];
 
-  for (let i = 0; i < dues.length; i++) {
-    rows.push({
-      general_diary_number_id: maxDiaryNumbers[i],
-      general_diary_type: "AUTO",
-      description: `Pago recibido Prestamo ${payment.loanType} Préstamo No. ${payment.loanNumber} - ${payment.customer}`,
-      comment: "Registro AUTO generado desde la APP",
-      total:
-        dues[i].totalPaid +
-        dues[i].totalPaidMora -
-        dues[i].fixedTotalPaid -
-        dues[i].fixedTotalPaidMora,
-      status_type: "ENABLED",
-      created_by: payment.createdBy,
-      last_modified_by: payment.lastModifiedBy,
-      accoun_number_id: null,
-      outlet_id: payment.outletId,
-      payment_id: payment.payment_id,
-    });
-  }
+  rows.push({
+    general_diary_number_id: maxDiaryNumbers[0],
+    general_diary_type: "AUTO",
+    description: `Pago recibido Prestamo ${payment.loanType} Préstamo No. ${payment.loanNumber} - ${payment.customer}`,
+    comment: "Registro AUTO generado desde la APP",
+    total: payment.pay,
+    status_type: "ENABLED",
+    created_by: payment.createdBy,
+    last_modified_by: payment.lastModifiedBy,
+    accoun_number_id: null,
+    outlet_id: payment.outletId,
+    payment_id: payment.payment_id,
+  });
+
+  // for (let i = 0; i < dues.length; i++) {
+  //   rows.push({
+  //     general_diary_number_id: maxDiaryNumbers[i],
+  //     general_diary_type: "AUTO",
+  //     description: `Pago recibido Prestamo ${payment.loanType} Préstamo No. ${payment.loanNumber} - ${payment.customer}`,
+  //     comment: "Registro AUTO generado desde la APP",
+  //     total:
+  //       dues[i].totalPaid +
+  //       dues[i].totalPaidMora -
+  //       dues[i].fixedTotalPaid -
+  //       dues[i].fixedTotalPaidMora,
+  //     status_type: "ENABLED",
+  //     created_by: payment.createdBy,
+  //     last_modified_by: payment.lastModifiedBy,
+  //     accoun_number_id: null,
+  //     outlet_id: payment.outletId,
+  //     payment_id: payment.payment_id,
+  //   });
+  // }
 
   return rows;
 }
 async function setAccountingSeat(dues, payment, diaryIds) {
   let rows = [];
+  let result = [];
 
   const [accountCatalog] = await db.sequelize.query(
     `SELECT *
@@ -740,6 +759,7 @@ async function setAccountingSeat(dues, payment, diaryIds) {
     }','GENERAL' ${isPayingMora ? ", 'LATE'" : ""})`
   );
 
+  console.log("ROWS GENERAL DIARY ACCOUNT LENGTH", dues.length);
   for (let i = 0; i < dues.length; i++) {
     accounts.map((account) => {
       let debit = 0;
@@ -795,15 +815,11 @@ async function setAccountingSeat(dues, payment, diaryIds) {
       }
 
       rows.push({
-        general_diary_id: diaryIds[i].dataValues.general_diary_id,
         account_catalog_id: account.account_catalog_id,
         debit,
         credit,
-        status_type: "ENABLED",
-        created_by: payment.createdBy,
-        last_modified_by: payment.lastModifiedBy,
-        reconcile: false,
       });
+      console.log("ROWS GENERAL DIARY ACCOUNT", rows);
     });
 
     // for (let o = 0; o < rows.length; o++) {
@@ -826,7 +842,27 @@ async function setAccountingSeat(dues, payment, diaryIds) {
     //   // where account_catalog_id = '${rows[o].account_catalog_id}'`)
     // }
   }
-  return rows;
+
+  console.log("ROWS GENERAL DIARY ACCOUNT", rows);
+
+  for (item of accounts) {
+    result.push({
+      general_diary_id: diaryIds[0].dataValues.general_diary_id,
+      account_catalog_id: item.account_catalog_id,
+      debit: rows
+        .filter((a) => a.account_catalog_id == item.account_catalog_id)
+        .reduce((acc, b) => acc + b.debit, 0),
+      credit: rows
+        .filter((a) => a.account_catalog_id == item.account_catalog_id)
+        .reduce((acc, b) => acc + b.credit, 0),
+      status_type: "ENABLED",
+      created_by: payment.createdBy,
+      last_modified_by: payment.lastModifiedBy,
+      reconcile: false,
+    });
+  }
+
+  return result;
 }
 
 function getParentAccounts(account, catalog) {
