@@ -10,6 +10,7 @@ const qrController = require("../controllers/qr");
 const paymentController = require("../controllers/payments");
 const imageController = require("../controllers/camera");
 const receiptController = require("../controllers/receipt");
+const procesoAjusestesCtrl = require("../controllers/procesos_arreglos_contabilidad");
 const syncController = require("../controllers/sync");
 
 //Proceso temporal
@@ -482,6 +483,12 @@ c.first_name || ' ' || c.last_name as name, lpa.street || ' ' || lpa.street2 as 
   //Synchronization
   router.get("/sync/:employeeId", syncController.getCustomers);
   router.get("/sync/amortization/:employeeId", syncController.getAmortization);
+
+  //PROCESOS DE AJUSTES
+  router.get(
+    "/ajustes/missing-box",
+    procesoAjusestesCtrl.generalBoxMissingFixer
+  );
 
   app.use(router);
 };

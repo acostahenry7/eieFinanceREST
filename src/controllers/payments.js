@@ -732,6 +732,7 @@ async function generateDiaryTransactions(maxDiaryNumbers, dues, payment) {
 
   return rows;
 }
+
 async function setAccountingSeat(dues, payment, diaryIds) {
   let rows = [];
   let result = [];
@@ -846,15 +847,41 @@ async function setAccountingSeat(dues, payment, diaryIds) {
   console.log("ROWS GENERAL DIARY ACCOUNT", rows);
 
   for (item of accounts) {
+    let calcDebit = rows
+      .filter((a) => a.account_catalog_id == item.account_catalog_id)
+      .reduce((acc, b) => acc + b.debit, 0);
+
+    let calcCredit = rows
+      .filter((a) => a.account_catalog_id == item.account_catalog_id)
+      .reduce((acc, b) => acc + b.credit, 0);
+
+    if (payment.globalDiscount > 0) {
+      switch (item.number[0]) {
+        case "1":
+          if (item.name.toLowerCase().includes("caja")) {
+            calcDebit = calcDebit - payment.globalDiscount;
+          } else {
+            calcCredit = calcCredit;
+          }
+          break;
+        case "2":
+          calcDebit = calcDebit;
+          break;
+        case "4":
+          if (item.name.toLowerCase().includes("interes")) {
+            calcCredit = calcCredit - payment.globalDiscount;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+
     result.push({
       general_diary_id: diaryIds[0].dataValues.general_diary_id,
       account_catalog_id: item.account_catalog_id,
-      debit: rows
-        .filter((a) => a.account_catalog_id == item.account_catalog_id)
-        .reduce((acc, b) => acc + b.debit, 0),
-      credit: rows
-        .filter((a) => a.account_catalog_id == item.account_catalog_id)
-        .reduce((acc, b) => acc + b.credit, 0),
+      debit: calcDebit,
+      credit: calcCredit,
       status_type: "ENABLED",
       created_by: payment.createdBy,
       last_modified_by: payment.lastModifiedBy,
