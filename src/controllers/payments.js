@@ -111,7 +111,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     results.customer = client;
     results.loans = [...loans];
     results.charges = [...charges];
-    results.isNcfAvailable = !end_ncf;
+    results.isNcfAvailable = !end_ncf || true;
     //result.charges = charges;
     results.globalDiscount = parseInt(gDiscount[0]?.discount);
   } catch (error) {
@@ -203,7 +203,7 @@ controller.createPayment = async (req, res) => {
         .then(async ([[ncf]]) => {
           console.log(ncf);
 
-          if (ncf.end_ncf == false) {
+          if (ncf?.end_ncf == false) {
             if (parseInt(ncf.next_ncf) >= parseInt(ncf.to_ncf)) {
               await db.sequelize.query(
                 `UPDATE ncf SET end_ncf = 'true' WHERE ncf_id = '${ncf.ncf_id}'`
@@ -228,6 +228,9 @@ controller.createPayment = async (req, res) => {
               }
             });
           }
+        })
+        .catch((err) => {
+          console.log("ERROR CONSUMIENDO NCF ", err);
         });
 
       req.body.amortization.map(async (quota, index) => {
