@@ -111,7 +111,10 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     results.customer = client;
     results.loans = [...loans];
     results.charges = [...charges];
-    results.isNcfAvailable = !end_ncf || true;
+    if (end_ncf == undefined) {
+      end_ncf = true;
+    }
+    results.isNcfAvailable = !end_ncf;
     //result.charges = charges;
     results.globalDiscount = parseInt(gDiscount[0]?.discount);
   } catch (error) {
