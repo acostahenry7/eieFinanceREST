@@ -5,6 +5,7 @@ const _ = require("lodash");
 
 const Amortization = db.amortization;
 const Payment = db.payment;
+const ProcessNcf = db.processNcf;
 const PaymentDetail = db.paymentDetail;
 const Loan = db.loan;
 const LoanPaymentAddress = db.loanPaymentAddress;
@@ -100,10 +101,17 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 
     console.log("CHARGES", charges);
 
+    const [[{ end_ncf }]] = await db.sequelize.query(`
+    select end_ncf 
+    from ncf 
+    where outlet_id = (select outlet_id from loan where loan_number_id = '${req.body.searchKey}' )
+    and ncf_type_id = 2`);
+
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;
     results.loans = [...loans];
     results.charges = [...charges];
+    results.isNcfAvailable = !end_ncf;
     //result.charges = charges;
     results.globalDiscount = parseInt(gDiscount[0]?.discount);
   } catch (error) {
@@ -181,6 +189,47 @@ controller.createPayment = async (req, res) => {
     payment_origin: "APP",
   })
     .then((payment) => {
+      //AQUI VA LA LOGICA DE NCF
+
+      //CONSUMIENDO NCF
+      db.sequelize
+        .query(
+          `
+        SELECT ncf_id, to_ncf, next_ncf, prefix_ncf, end_ncf
+        FROM ncf 
+        WHERE outlet_id like '${req.body.payment.outletId}' and ncf_type_id = 2
+        `
+        )
+        .then(async ([[ncf]]) => {
+          console.log(ncf);
+
+          if (ncf.end_ncf == false) {
+            if (parseInt(ncf.next_ncf) >= parseInt(ncf.to_ncf)) {
+              await db.sequelize.query(
+                `UPDATE ncf SET end_ncf = 'true' WHERE ncf_id = '${ncf.ncf_id}'`
+              );
+            }
+            ProcessNcf.create({
+              status_type: "CREATED",
+              ncf_number: generateNCFNumber(ncf.next_ncf),
+              payment_id: payment.dataValues.payment_id,
+              outlet_id: req.body.payment.outletId,
+              ncf_type_id: 2,
+              created_by: req.body.payment.createdBy,
+              last_modified_by: req.body.payment.lastModifiedBy,
+            }).then(async (processNcf) => {
+              console.log("NCF PROCESSED!");
+              if (parseInt(ncf.next_ncf) < parseInt(ncf.to_ncf)) {
+                await db.sequelize.query(
+                  `UPDATE ncf SET next_ncf = ${
+                    parseInt(ncf.next_ncf) + 1
+                  } WHERE ncf_id = '${ncf.ncf_id}'`
+                );
+              }
+            });
+          }
+        });
+
       req.body.amortization.map(async (quota, index) => {
         Amortization.findOne({
           attributes: ["total_paid", "quota_number"],
@@ -406,8 +455,8 @@ controller.createPayment = async (req, res) => {
                                 }).then(async (section) => {
                                   const [zone, metadata] = await db.sequelize
                                     .query(`
-                                      select name 
-                                      from zone 
+                                      select name
+                                      from zone
                                       where zone_id = (select zone_id from zone_neighbor_hood where section_id = '${sectionId.dataValues.section_id}'  limit 1)`);
 
                                   console.log(zone);
@@ -658,6 +707,18 @@ function generateReceiptNumber() {
   const result = firstRandom + "-" + secondRandom;
 
   return result.toString();
+}
+
+function generateNCFNumber(number) {
+  let ncf = `B02`;
+
+  for (let i = 0; i < 8 - number.toString().length; i++) {
+    ncf += "0";
+  }
+
+  ncf += number.toString();
+
+  return ncf;
 }
 
 async function getLastDiaryNumbers(amortization) {

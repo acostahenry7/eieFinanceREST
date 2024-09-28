@@ -70,6 +70,7 @@ db.generalDiaryAccount = require("../models/GeneralDiaryAccount.model")(
   sequelize,
   Sequelize
 );
+db.processNcf = require("../models/ProcessNcf.model")(sequelize, Sequelize);
 
 db.loanApplication.belongsTo(db.customer, {
   foreignKey: "customer_id",
