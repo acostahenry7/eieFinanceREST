@@ -45,7 +45,7 @@ controller.login = async (req, res) => {
           if (tries <= 3) {
             if (req.body.version) {
               if (
-                req.body.version != APPVERSION ||
+                req.body.version != APPVERSION &&
                 req.body.version != "1.28"
               ) {
                 results.successfullLogin = false;
