@@ -4,9 +4,12 @@ const Customer = db.customer;
 const { uuid } = require("uuidv4");
 
 controller.createQrByCustomerId = (req, res) => {
+  console.log(req.params.customerId);
+  let qrId = uuid().toString();
+  console.log(qrId);
   Customer.update(
     {
-      qr_code: uuid().toString(),
+      qr_code: qrId,
     },
     {
       where: {
@@ -16,7 +19,8 @@ controller.createQrByCustomerId = (req, res) => {
     }
   )
     .then((customer) => {
-      res.send(customer["1"][0].dataValues);
+      res.send(customer[1][0].dataValues);
+      console.log(customer[1][0].dataValues);
     })
     .catch((err) => {
       console.log(err);

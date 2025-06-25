@@ -26,7 +26,7 @@ const { result } = require("lodash");
 controller.getPaymentsBySearchkey = async (req, res) => {
   const results = {};
 
-  console.log("DATE", db.sequelize.fn("NOW"));
+  //console.log("DATE", db.sequelize.fn("NOW"));
 
   try {
     const [client, metaClient] = await db.sequelize.query(
@@ -72,7 +72,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     });
 
     //
-    console.log(loanNumbers.join(","));
+    //console.log(loanNumbers.join(","));
 
     const [quotas, metaQuota] = await db.sequelize
       .query(`select a.amortization_id, a.quota_number,((a.amount_of_fee + a.mora) - a.discount) - (a.total_paid) as quota_amount, a.amount_of_fee,
@@ -99,29 +99,33 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     where loan_id in (select loan_id from loan where loan_number_id in (${loanNumbers.join()}))
     and status_type = 'CREATED'`);
 
-    console.log("CHARGES", charges);
+    //console.log("CHARGES", charges);
 
-    const [[{ end_ncf }]] = await db.sequelize.query(`
+    const [endNcf] = await db.sequelize.query(`
     select end_ncf 
     from ncf 
     where outlet_id = (select outlet_id from loan where loan_number_id = '${req.body.searchKey}' )
+    and status_type = 'ENABLED'
     and ncf_type_id = 2`);
+
+    console.log("END NCF #####################", endNcf);
 
     results.quotas = _.groupBy(quotas, (quota) => quota.loan_number_id);
     results.customer = client;
     results.loans = [...loans];
     results.charges = [...charges];
-    if (end_ncf == undefined) {
-      end_ncf = true;
+    if (endNcf) {
+      let [{ end_ncf }] = endNcf;
+
+      results.isNcfAvailable = !end_ncf;
     }
-    results.isNcfAvailable = !end_ncf;
     //result.charges = charges;
     results.globalDiscount = parseInt(gDiscount[0]?.discount);
   } catch (error) {
     console.log(error);
   }
 
-  console.log(results);
+  console.log(results.isNcfAvailable);
   res.send(results);
 };
 

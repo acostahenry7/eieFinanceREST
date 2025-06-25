@@ -22,42 +22,63 @@ controller.getCustomersByEmployeeId = async (req, res) => {
 
     //    whereClause = `where 1 = 1`
     //}else {
-    whereClause = `where employee_id='${req.params.employeeId}'))`;
+    whereClause = `where employee_id='${req.params.employeeId}'`;
     //andCla
+
+    if (req.params.employeeId == 0) {
+      whereClause = "where 1 = 1";
+    }
     //}
 
     //console.log("Employee ID", req.params.employeeId);
     let query = "";
-    if (req.params.employeeId == "0") {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name,  identification, street, c.qr_code, c.image_url
-                    FROM loan_application la
-                    JOIN customer c on (la.customer_id = c.customer_id)`;
-    } else {
-      query = `SELECT DISTINCT(la.customer_id) AS customer_id, c.first_name,last_name, identification, l.loan_number_id, l.loan_id, l.loan_payment_address_id,
-      lp.street, lp.street2, loan_situation, c.image_url, lb.name as business, lp.payment_address_type,
-      p.name as province, m.name as municipality, s.name as section
-      FROM loan_application la
-      LEFT JOIN loan_business lb on (la.loan_application_id = lb.loan_business_id)
-      JOIN customer c on (c.customer_id = la.customer_id)
-      join loan l on (la.loan_application_id = l.loan_application_id and l.status_type not in ('DELETE', 'PAID'))
-      join loan_payment_address lp on (lp.loan_id = l.loan_id and lp.payment_address_type in ('BUSINESS','CUSTOMER' ) )
-      join province p on (p.province_id = lp.province_id)
-      join municipality m on (m.municipality_id = lp.municipality_id)
-        join section s on (s.section_id = lp.section_id)
-      where lp.section_id in      (select cast(section_id as int) 
-                              from zone_neighbor_hood 
-                              where zone_id in (select zone_id
-                                                from employee_zone
-                                                where employee_id='${req.params.employeeId}'
-                                                and status_type = 'ENABLED'
-                                                ))
-      and la.outlet_id=(select outlet_id from employee where employee_id='${req.params.employeeId}')
-      order by c.first_name`;
-    }
+    //if (req.params.employeeId == "0") {
+    query = `select distinct(customer_id), min(identification) as identification, min(loan_id) as loan_id, min(loan_number_id) as loan_number_id,  
+    min(first_name) as first_name, min(last_name) as last_name, min(loan_payment_address_id) as loan_payment_address_id, min(street) as street,
+    min(street2) as street2, min(loan_situation) as loan_situation, min(image_url) as image_url, min(payment_address_type) as payment_address_type,
+    min(province) as province, min(municipality) as municipality, min(section) as section, min(business) as business, min(qr_code) as qr_code
+    from 
+    (select la.customer_id, c.identification, l.loan_id, l.loan_number_id, c.first_name , c.last_name,
+          l.loan_payment_address_id, lpa.street, lpa.street2, l.loan_situation, c.image_url,
+          lpa.payment_address_type, p.name as province, m.name as municipality, s.name as section, lb.name as business, c.qr_code
+          from loan l 
+          join loan_payment_address lpa on l.loan_payment_address_id = lpa.loan_payment_address_id
+          join loan_application la on l.loan_application_id = la.loan_application_id
+          join province p on (lpa.province_id = p.province_id)
+          join municipality m on (lpa.municipality_id = m.municipality_id)
+          join section s on (lpa.section_id = s.section_id)
+          join customer c on la.customer_id = c.customer_id
+          left join loan_business lb on (la.loan_application_id = lb.loan_business_id)
+          where lpa.section_id in (
+            select section_id
+            from zone_neighbor_hood
+            where zone_id in(
+              select ez.zone_id
+              from employee_zone ez
+              join zone z on ez.zone_id = z.zone_id
+              ${whereClause}
+              and z.status_type = 'ENABLED'
+              and ez.status_type = 'ENABLED')
+            and status_type = 'ENABLED'
+            order by section_id)
+          and l.status_type not in ('PAID', 'REFINANCE', 'DELETE')
+          and l.loan_situation not in ('SEIZED')
+          ${
+            req.params.employeeId != 0
+              ? `and l.outlet_id = (select outlet_id from employee ${whereClause})`
+              : "and l.outlet_id = '5080d852-5e2b-464d-ba94-660de4e7ace6'"
+          }
+          order by l.created_date desc, c.first_name) t1
+        group by customer_id
+        order by first_name
+        --limit 1
+        `;
+    //}
 
     try {
       const [data, meta] = await db.sequelize.query(query);
 
+      console.log(data);
       const results = {};
 
       if (endIndex < data.length) {
