@@ -57,6 +57,7 @@ controller.getPaymentsBySearchkey = async (req, res) => {
     and a.outlet_id = l.outlet_id
     and l.status_type not in ('PAID', 'REFINANCE', 'DELETE')
     and l.loan_situation not in ('SEIZED')
+    
     group by l.loan_number_id, l.loan_id, l.number_of_installments, l.outlet_id, la.loan_type`
     );
 

@@ -133,9 +133,16 @@ controller.getCustomerById = async (req, res) => {
 
   const [loan, meta] = await db.sequelize.query(
     `select * from loan 
-          where loan_application_id in (select loan_application_id 
-                                        from loan_application
-                                        where customer_id = '${req.body.id}')
+          where loan_application_id in (select la.loan_application_id 
+                                        from loan_application la
+                                        join loan l on (la.loan_application_id = l.loan_application_id)
+                                        join loan_payment_address lp on (lp.loan_id = l.loan_id)
+                                        where la.customer_id = '${req.body.id}'
+                                        and lp.section_id in (select cast(section_id as int) 
+                                        from zone_neighbor_hood 
+                                        where zone_id in (select zone_id
+                                                  from employee_zone
+                                                  where employee_id='${req.body.employeeId}')))
           and outlet_id=(select outlet_id from employee where employee_id='${req.body.employeeId}')
           and status_type not in ('PAID', 'REFINANCE', 'DELETE')
           and loan_situation not in ('SEIZED')`
