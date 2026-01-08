@@ -42,7 +42,11 @@ controller.getPaymentsBySearchkey = async (req, res) => {
 																where zone_id in (select zone_id
 																				  from employee_zone
 																				  where employee_id='${req.body.employeeId}')))	
-										and la.outlet_id=(select outlet_id from employee where employee_id='${req.body.employeeId}')`
+										and la.outlet_id in (
+                      select outlet_id from employee where employee_id='${req.body.employeeId}'
+                      union
+                      select outlet_id from employee_outlet where employee_id = '${req.body.employeeId}'
+                      )`
     );
 
     var customerId = client[0].customer_id;
