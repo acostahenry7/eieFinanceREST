@@ -36,11 +36,12 @@ controller.getCustomersByEmployeeId = async (req, res) => {
     query = `select distinct(customer_id), min(identification) as identification, min(loan_id) as loan_id, min(loan_number_id) as loan_number_id,  
     min(first_name) as first_name, min(last_name) as last_name, min(loan_payment_address_id) as loan_payment_address_id, min(street) as street,
     min(street2) as street2, min(loan_situation) as loan_situation, min(image_url) as image_url, min(payment_address_type) as payment_address_type,
-    min(province) as province, min(municipality) as municipality, min(section) as section, min(business) as business, min(qr_code) as qr_code
+    min(province) as province, min(municipality) as municipality, min(section) as section, min(business) as business, min(qr_code) as qr_code,
+	min(outlet) as outlet
     from 
     (select la.customer_id, c.identification, l.loan_id, l.loan_number_id, c.first_name , c.last_name,
           l.loan_payment_address_id, lpa.street, lpa.street2, l.loan_situation, c.image_url,
-          lpa.payment_address_type, p.name as province, m.name as municipality, s.name as section, lb.name as business, c.qr_code
+          lpa.payment_address_type, p.name as province, m.name as municipality, s.name as section, lb.name as business, c.qr_code, o.name as outlet
           from loan l 
           join loan_payment_address lpa on l.loan_payment_address_id = lpa.loan_payment_address_id
           join loan_application la on l.loan_application_id = la.loan_application_id
@@ -48,6 +49,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
           join municipality m on (lpa.municipality_id = m.municipality_id)
           join section s on (lpa.section_id = s.section_id)
           join customer c on la.customer_id = c.customer_id
+	 	  join outlet o on (l.outlet_id = o.outlet_id)
           left join loan_business lb on (la.loan_application_id = lb.loan_business_id)
           where lpa.section_id in (
             select section_id
@@ -56,22 +58,32 @@ controller.getCustomersByEmployeeId = async (req, res) => {
               select ez.zone_id
               from employee_zone ez
               join zone z on ez.zone_id = z.zone_id
-              ${whereClause}
+              where employee_id='${req.params.employeeId}'
+			  and z.outlet_id in (
+				  select outlet_id from employee_outlet where employee_id = '${req.params.employeeId}'
+				  union
+				  select outlet_id from employee where employee_id = '${req.params.employeeId}'
+			  )
               and z.status_type = 'ENABLED'
               and ez.status_type = 'ENABLED')
             and status_type = 'ENABLED'
             order by section_id)
           and l.status_type not in ('PAID', 'REFINANCE', 'DELETE')
           and l.loan_situation not in ('SEIZED')
-          ${
-            req.params.employeeId != 0
-              ? `and l.outlet_id = (select outlet_id from employee ${whereClause})`
-              : "and l.outlet_id = '5080d852-5e2b-464d-ba94-660de4e7ace6'"
-          }
+          
+          and l.outlet_id = (select z.outlet_id
+              from employee_zone ez
+              join zone z on ez.zone_id = z.zone_id
+              where employee_id='${req.params.employeeId}'
+			  and z.outlet_id in ( 
+				  select outlet_id from employee_outlet where employee_id = '${req.params.employeeId}'
+				  union
+				  select outlet_id from employee where employee_id = '${req.params.employeeId}')
+              and z.status_type = 'ENABLED'
+              and ez.status_type = 'ENABLED')
           order by l.created_date desc, c.first_name) t1
         group by customer_id
         order by first_name
-        --limit 1
         `;
     //}
 
