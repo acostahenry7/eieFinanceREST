@@ -71,7 +71,7 @@ controller.getCustomersByEmployeeId = async (req, res) => {
           and l.status_type not in ('PAID', 'REFINANCE', 'DELETE')
           and l.loan_situation not in ('SEIZED')
           
-          and l.outlet_id = (select z.outlet_id
+          and l.outlet_id = (select distinct(z.outlet_id)
               from employee_zone ez
               join zone z on ez.zone_id = z.zone_id
               where employee_id='${req.params.employeeId}'
