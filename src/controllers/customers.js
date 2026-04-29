@@ -24,16 +24,23 @@ controller.getCustomersByEmployeeId = async (req, res) => {
     //}else {
     whereClause = `where employee_id='${req.params.employeeId}'`;
     //andCla
-
+	let query = "";
     if (req.params.employeeId == 0) {
       whereClause = "where 1 = 1";
-    }
-    //}
-
-    //console.log("Employee ID", req.params.employeeId);
-    let query = "";
-    //if (req.params.employeeId == "0") {
-    query = `select distinct(customer_id), min(identification) as identification, min(loan_id) as loan_id, min(loan_number_id) as loan_number_id,  
+		query = `select distinct(c.identification), la.customer_id, l.loan_id, l.loan_number_id, c.first_name , c.last_name,
+l.loan_payment_address_id, lpa.street, lpa.street2, l.loan_situation, c.image_url,
+lpa.payment_address_type, p.name as province, m.name as municipality, s.name as section, lb.name as business, c.qr_code, o.name as outlet
+from loan l
+join loan_payment_address lpa on l.loan_payment_address_id = lpa.loan_payment_address_id
+join loan_application la on l.loan_application_id = la.loan_application_id
+join province p on (lpa.province_id = p.province_id)
+join municipality m on (lpa.municipality_id = m.municipality_id)
+join section s on (lpa.section_id = s.section_id)
+join customer c on la.customer_id = c.customer_id
+join outlet o on (l.outlet_id = o.outlet_id)
+left join loan_business lb on (la.loan_application_id = lb.loan_business_id)`
+    }else {
+		query = `select distinct(customer_id), min(identification) as identification, min(loan_id) as loan_id, min(loan_number_id) as loan_number_id,  
     min(first_name) as first_name, min(last_name) as last_name, min(loan_payment_address_id) as loan_payment_address_id, min(street) as street,
     min(street2) as street2, min(loan_situation) as loan_situation, min(image_url) as image_url, min(payment_address_type) as payment_address_type,
     min(province) as province, min(municipality) as municipality, min(section) as section, min(business) as business, min(qr_code) as qr_code,
@@ -85,6 +92,13 @@ controller.getCustomersByEmployeeId = async (req, res) => {
         group by customer_id
         order by first_name
         `;
+	}
+    //}
+
+    //console.log("Employee ID", req.params.employeeId);
+    
+    //if (req.params.employeeId == "0") {
+    
     //}
 
     try {
