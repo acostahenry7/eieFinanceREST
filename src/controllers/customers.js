@@ -38,7 +38,8 @@ join municipality m on (lpa.municipality_id = m.municipality_id)
 join section s on (lpa.section_id = s.section_id)
 join customer c on la.customer_id = c.customer_id
 join outlet o on (l.outlet_id = o.outlet_id)
-left join loan_business lb on (la.loan_application_id = lb.loan_business_id)`
+left join loan_business lb on (la.loan_application_id = lb.loan_business_id)
+LIMIT 5000`
     }else {
 		query = `select distinct(customer_id), min(identification) as identification, min(loan_id) as loan_id, min(loan_number_id) as loan_number_id,  
     min(first_name) as first_name, min(last_name) as last_name, min(loan_payment_address_id) as loan_payment_address_id, min(street) as street,
